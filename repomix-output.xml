@@ -1,0 +1,388 @@
+This file is a merged representation of a subset of the codebase, containing specifically included files and files not matching ignore patterns, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Only files matching these patterns are included: Assets/Scripts/**/*.cs
+- Files matching these patterns are excluded: Library/, Temp/, Obj/, Build/, Builds/, Logs/, *.log, *.tmp, *.bak, *.cache, *.csproj, *.sln, *.user, *.unityproj, *.pidb, *.booproj, *.svd, *.pdb, *.mdb, *.opendb, *.VC.db, *.pidb.meta, *.pdb.meta, *.mdb.meta, *.opendb.meta, *.VC.db.meta, Assets/Scripts/Player/PlayerControls.cs
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+Assets/
+  Scripts/
+    AudioManager.cs
+    DashGost.cs
+    JiggleEffect.cs
+    PlayerController.cs
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="Assets/Scripts/DashGost.cs">
+using UnityEngine;
+
+public class DashGhost : MonoBehaviour
+{
+    public float duration = 0.3f;
+    private SpriteRenderer sr;
+
+    void Start()
+    {
+        sr = GetComponent<SpriteRenderer>();
+        sr.sortingOrder -= 1; // Fica atrás do player
+        Destroy(gameObject, duration);
+    }
+
+    void Update()
+    {
+        if (sr != null)
+        {
+            Color color = sr.color;
+            color.a -= Time.deltaTime / duration;
+            sr.color = color;
+        }
+    }
+}
+</file>
+
+<file path="Assets/Scripts/JiggleEffect.cs">
+using UnityEngine;
+using DG.Tweening;
+
+public class JiggleEffect : MonoBehaviour
+{
+    [Header("Configuração do Jiggle")]
+    public float scaleAmount = 0.05f;       // Quanto a escala oscila
+    public float positionAmount = 0.05f;    // Quanto a posição oscila
+    public float duration = 0.3f;           // Duração de cada fase
+
+    private Vector3 originalScale;
+    private Vector3 originalPos;
+
+    void Start()
+    {
+        originalScale = transform.localScale;
+        originalPos = transform.localPosition;
+
+        StartJiggle();
+    }
+
+    void StartJiggle()
+    {
+        Sequence seq = DOTween.Sequence().SetLoops(-1, LoopType.Yoyo);
+
+        seq.Append(transform.DOScale(originalScale + new Vector3(scaleAmount, -scaleAmount, 0), duration).SetEase(Ease.InOutSine));
+        seq.Join(transform.DOLocalMove(originalPos + new Vector3(positionAmount, positionAmount, 0), duration).SetEase(Ease.InOutSine));
+
+        seq.Append(transform.DOScale(originalScale + new Vector3(-scaleAmount, scaleAmount, 0), duration).SetEase(Ease.InOutSine));
+        seq.Join(transform.DOLocalMove(originalPos + new Vector3(-positionAmount, -positionAmount, 0), duration).SetEase(Ease.InOutSine));
+    }
+}
+</file>
+
+<file path="Assets/Scripts/AudioManager.cs">
+using UnityEngine;
+using System.Collections.Generic;
+
+public class AudioManager : MonoBehaviour
+{
+    public static AudioManager Instance { get; private set; }
+
+    [Header("Músicas")]
+    [Tooltip("Lista de músicas de fundo disponíveis.")]
+    public List<AudioClip> backgroundMusicClips = new List<AudioClip>(); // Lista de músicas
+    public AudioSource bgmAudioSource;
+
+    [Header("Efeitos Sonoros")]
+    public AudioSource sfxAudioSource;
+    [Tooltip("Lista dos clipes de áudio dos efeitos sonoros.")]
+    public List<AudioClip> soundEffectClips;
+
+    private const float PITCH_VARIATION_PERCENTAGE = 0.10f; // 10%
+
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    void Start()
+    {
+        // Exemplo: Inicia a música do menu ao carregar a cena inicial
+        PlayBackgroundMusic(0); // Assume que a música do menu é o primeiro clipe na lista
+    }
+
+    /// <summary>
+    /// Toca uma música de fundo específica da lista.
+    /// </summary>
+    /// <param name="musicIndex">O índice da música na lista 'backgroundMusicClips'.</param>
+    public void PlayBackgroundMusic(int musicIndex)
+    {
+        if (bgmAudioSource == null || backgroundMusicClips.Count == 0)
+        {
+            Debug.LogWarning("AudioManager: bgmAudioSource não atribuído ou lista de músicas vazia.");
+            return;
+        }
+
+        if (musicIndex < 0 || musicIndex >= backgroundMusicClips.Count || backgroundMusicClips[musicIndex] == null)
+        {
+            Debug.LogWarning($"AudioManager: Índice de música inválido ({musicIndex}).");
+            return;
+        }
+
+        bgmAudioSource.clip = backgroundMusicClips[musicIndex];
+        bgmAudioSource.loop = true;
+        ApplyRandomPitch(bgmAudioSource);
+        bgmAudioSource.Play();
+    }
+
+    /// <summary>
+    /// Para a música de fundo.
+    /// </summary>
+    public void StopBackgroundMusic()
+    {
+        if (bgmAudioSource != null)
+        {
+            bgmAudioSource.Stop();
+        }
+    }
+
+    /// <summary>
+    /// Toca um efeito sonoro específico da lista.
+    /// </summary>
+    /// <param name="sfxIndex">O índice do efeito sonoro na lista 'soundEffectClips'.</param>
+    /// <param name="volumeScale">Escala de volume opcional para este efeito sonoro (padrão é 1.0f).</param>
+    public void PlaySoundEffect(int sfxIndex, float volumeScale = 1.0f)
+    {
+        if (sfxAudioSource == null)
+        {
+            Debug.LogWarning("AudioManager: sfxAudioSource não foi atribuído. Efeito sonoro não pode ser tocado.");
+            return;
+        }
+
+        if (sfxIndex < 0 || sfxIndex >= soundEffectClips.Count || soundEffectClips[sfxIndex] == null)
+        {
+            Debug.LogWarning($"AudioManager: Índice de efeito sonoro inválido ({sfxIndex}) ou clipe de áudio não atribuído.");
+            return;
+        }
+
+        ApplyRandomPitch(sfxAudioSource);
+        sfxAudioSource.PlayOneShot(soundEffectClips[sfxIndex], volumeScale);
+    }
+
+    public void PlayConfettiSound()
+    {
+        if (sfxAudioSource == null)
+        {
+            Debug.LogWarning("AudioManager: sfxAudioSource não foi atribuído. Efeito sonoro de confete não pode ser tocado.");
+            return;
+        }
+
+        AudioClip confettiClip = soundEffectClips.Find(clip => clip.name.Contains("Confetti"));
+        if (confettiClip != null)
+        {
+            ApplyRandomPitch(sfxAudioSource);
+            sfxAudioSource.PlayOneShot(confettiClip);
+        }
+        else
+        {
+            Debug.LogWarning("AudioManager: Clip de confete não encontrado na lista de efeitos sonoros.");
+        }
+    }
+
+    public void PlaySoundEffectClip(AudioClip clip, float volumeScale = 1.0f)
+  {
+    if (sfxAudioSource == null)
+    {
+      Debug.LogWarning("AudioManager: sfxAudioSource não foi atribuído. Efeito sonoro não pode ser tocado.");
+      return;
+    }
+
+    if (clip == null)
+    {
+      Debug.LogWarning("AudioManager: Clip de áudio é nulo. Efeito sonoro não pode ser tocado.");
+      return;
+    }
+
+    ApplyRandomPitch(sfxAudioSource);
+    sfxAudioSource.PlayOneShot(clip, volumeScale);
+  }
+
+    private void ApplyRandomPitch(AudioSource audioSource)
+  {
+    float randomPitch = Random.Range(1f - PITCH_VARIATION_PERCENTAGE, 1f + PITCH_VARIATION_PERCENTAGE);
+    audioSource.pitch = randomPitch;
+  }
+}
+</file>
+
+<file path="Assets/Scripts/PlayerController.cs">
+using UnityEngine;
+using DG.Tweening;
+
+[RequireComponent(typeof(Rigidbody2D))]
+public class PlayerController : MonoBehaviour
+{
+    [Header("Movimentação")]
+    public float moveSpeed = 8f;
+    public float acceleration = 10f;
+
+    [Header("Dash")]
+    public float dashForce = 12f;
+    public float dashDuration = 0.2f;
+    public float dashCooldown = 2f;
+    public KeyCode dashKey = KeyCode.Space;
+
+    [Header("Dash Visual (Ghost)")]
+    public Transform spriteTransform; // Objeto visual com SpriteRenderer
+    public GameObject ghostPrefab;    // Prefab com SpriteRenderer + DashGhost.cs
+    public float ghostSpawnRate = 0.05f;
+
+    [Header("Lenha")]
+    public GameObject woodPrefab;
+    public float throwRange = 5f;
+    public float throwDuration = 0.3f;
+
+    private Rigidbody2D rb;
+    private Vector2 input;
+    private bool isDashing = false;
+    private float lastDashTime = -Mathf.Infinity;
+
+    void Start()
+    {
+        rb = GetComponent<Rigidbody2D>();
+    }
+
+    void Update()
+    {
+        HandleInput();
+        HandleThrowInput();
+        HandleDashInput();
+    }
+
+    void FixedUpdate()
+    {
+        if (!isDashing)
+        {
+            Vector2 targetVelocity = input * moveSpeed;
+            rb.velocity = Vector2.Lerp(rb.velocity, targetVelocity, acceleration * Time.fixedDeltaTime);
+        }
+    }
+
+    void HandleInput()
+    {
+        input = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")).normalized;
+    }
+
+    void HandleThrowInput()
+    {
+        if (Input.GetMouseButtonDown(0) && woodPrefab != null)
+        {
+            Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            mouseWorldPos.z = 0f;
+
+            Vector3 direction = (mouseWorldPos - transform.position).normalized;
+            Vector3 targetPos = transform.position + direction * throwRange;
+
+            GameObject thrownWood = Instantiate(woodPrefab, transform.position, Quaternion.identity);
+            thrownWood.transform.DOMove(targetPos, throwDuration).SetEase(Ease.OutQuad);
+        }
+    }
+
+    void HandleDashInput()
+    {
+        if (Input.GetKeyDown(dashKey) && Time.time >= lastDashTime + dashCooldown && !isDashing)
+        {
+            StartCoroutine(Dash());
+        }
+    }
+
+    System.Collections.IEnumerator Dash()
+    {
+        isDashing = true;
+        lastDashTime = Time.time;
+
+        Vector2 dashDir = input != Vector2.zero ? input : Vector2.up;
+        rb.velocity = dashDir.normalized * dashForce;
+
+        float dashTimer = 0f;
+        float ghostTimer = 0f;
+
+        while (dashTimer < dashDuration)
+        {
+            dashTimer += Time.deltaTime;
+            ghostTimer += Time.deltaTime;
+
+            if (ghostTimer >= ghostSpawnRate)
+            {
+                ghostTimer = 0f;
+                SpawnGhost();
+            }
+
+            yield return null;
+        }
+
+        isDashing = false;
+    }
+
+    void SpawnGhost()
+    {
+        if (spriteTransform == null || ghostPrefab == null) return;
+
+        GameObject ghost = Instantiate(ghostPrefab, spriteTransform.position, spriteTransform.rotation);
+        SpriteRenderer ghostSR = ghost.GetComponent<SpriteRenderer>();
+        SpriteRenderer playerSR = spriteTransform.GetComponent<SpriteRenderer>();
+
+        if (ghostSR && playerSR)
+        {
+            ghostSR.sprite = playerSR.sprite;
+            ghostSR.flipX = playerSR.flipX;
+            ghostSR.color = playerSR.color;
+        }
+    }
+}
+</file>
+
+</files>

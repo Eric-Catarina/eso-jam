@@ -1,78 +1,105 @@
 using UnityEngine;
-using DG.Tweening;
 
+[RequireComponent(typeof(Rigidbody2D))]
 public class PlayerController : MonoBehaviour
 {
     [Header("Movimentação")]
-    public float moveSpeed = 5f;
+    public float moveSpeed = 8f;
+    public float acceleration = 10f;
 
-    [Header("Jiggle")]
-    public Transform spriteTransform; // Referência ao objeto visual do jogador
-    public float jiggleScale = 0.9f;
-    public float jiggleDuration = 0.3f;
+    [Header("Dash")]
+    public float dashForce = 12f;
+    public float dashDuration = 0.2f;
+    public float dashCooldown = 2f;
+    public KeyCode dashKey = KeyCode.Space;
 
-    [Header("Lenha")]
+    [Header("Lançar Lenha")]
     public GameObject woodPrefab;
-    public float throwRange = 5f;
-    public float throwDuration = 0.3f;
+    public float throwForce = 10f;
+    public Transform woodSpawnPoint;
+
+    [Header("Inventário")]
+    public int lenhaNoInventario = 0;
 
     private Rigidbody2D rb;
-    private Vector2 moveInput;
+    private Vector2 input;
+    private bool isDashing = false;
+    private float lastDashTime = -Mathf.Infinity;
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        StartJiggle();
     }
 
     void Update()
     {
-        HandleMovementInput();
+        HandleInput();
+        HandleDashInput();
         HandleThrowInput();
     }
 
-    void HandleMovementInput()
+    void FixedUpdate()
     {
-        moveInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")).normalized;
-
-        if (moveInput.magnitude > 0.01f)
+        if (!isDashing)
         {
-            Vector3 moveDelta = (Vector3)moveInput * moveSpeed * Time.deltaTime;
-            transform.position += moveDelta;
+            Vector2 targetVelocity = input * moveSpeed;
+            rb.velocity = Vector2.Lerp(rb.velocity, targetVelocity, acceleration * Time.fixedDeltaTime);
         }
+    }
+
+    void HandleInput()
+    {
+        input = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")).normalized;
+    }
+
+    void HandleDashInput()
+    {
+        if (Input.GetKeyDown(dashKey) && Time.time >= lastDashTime + dashCooldown && !isDashing)
+        {
+            StartCoroutine(Dash());
+        }
+    }
+
+    System.Collections.IEnumerator Dash()
+    {
+        isDashing = true;
+        lastDashTime = Time.time;
+
+        Vector2 dashDir = input != Vector2.zero ? input : Vector2.up;
+        rb.velocity = dashDir.normalized * dashForce;
+
+        yield return new WaitForSeconds(dashDuration);
+        isDashing = false;
     }
 
     void HandleThrowInput()
     {
-        if (Input.GetMouseButtonDown(0) && woodPrefab != null)
+        if (Input.GetMouseButtonDown(0) && woodPrefab != null && lenhaNoInventario > 0)
         {
             Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             mouseWorldPos.z = 0f;
 
-            Vector3 direction = (mouseWorldPos - transform.position).normalized;
-            Vector3 targetPos = transform.position + direction * throwRange;
+            Vector2 throwDirection = (mouseWorldPos - transform.position).normalized;
+            Transform spawnPoint = woodSpawnPoint != null ? woodSpawnPoint : transform;
 
-            GameObject thrownWood = Instantiate(woodPrefab, transform.position, Quaternion.identity);
-            
-            // DOTween animation
-            thrownWood.transform.DOMove(targetPos, throwDuration).SetEase(Ease.OutQuad)
-                .OnComplete(() =>
-                {
-                    // Aqui você pode fazer a lenha "cair no chão" ou desaparecer
-                    // Destroy(thrownWood, 3f);
-                });
+            GameObject wood = Instantiate(woodPrefab, spawnPoint.position, Quaternion.identity);
+            Rigidbody2D woodRb = wood.GetComponent<Rigidbody2D>();
+
+            if (woodRb != null)
+            {
+                woodRb.AddForce(throwDirection * throwForce, ForceMode2D.Impulse);
+            }
+
+            lenhaNoInventario--;
         }
     }
 
-    void StartJiggle()
+    private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (spriteTransform != null)
+        if (collision.CompareTag("Lenha"))
         {
-            // Loop infinito de pulinhos
-            spriteTransform
-                .DOScale(new Vector3(jiggleScale, 1.1f / jiggleScale, 1f), jiggleDuration)
-                .SetLoops(-1, LoopType.Yoyo)
-                .SetEase(Ease.InOutSine);
+            lenhaNoInventario++;
+            Destroy(collision.gameObject);
         }
     }
 }
