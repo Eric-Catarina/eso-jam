@@ -17,7 +17,7 @@ public class UpgradeUIManager : MonoBehaviour
         upgradePanel.SetActive(true);
         GetComponent<UIJuice>().PlayAnimation();
 
-
+        Debug.Log($"Mostrando {upgrades.Count} opções de upgrade.");
         for (int i = 0; i < upgradeButtons.Count; i++)
         {
             if (i < upgrades.Count)
@@ -32,6 +32,8 @@ public class UpgradeUIManager : MonoBehaviour
                 upgradeButtons[i].onClick.RemoveAllListeners();
                 var selectedUpgrade = upgrades[i]; // Variável local para evitar problemas de closure
                 upgradeButtons[i].onClick.AddListener(() => GameManager.Instance.ApplyUpgrade(selectedUpgrade));
+                upgradeButtons[i].onClick.AddListener(() => HidePanel());
+
             }
             else
             {

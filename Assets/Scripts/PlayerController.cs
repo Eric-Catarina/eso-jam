@@ -170,7 +170,32 @@ public class PlayerController : MonoBehaviour
             Destroy(collision.gameObject);
             ThrowWood(); // Lança a lenha automaticamente ao coletar
         }
+        if (collision.CompareTag("Bonfire"))
+        {
+            ResetDashCooldown(); // Reseta o cooldown do dash ao entrar na fogueira
+        }
     }
+
+    private void OnTriggerStay2D(Collider2D collision)
+    {
+        if (collision.CompareTag("Lenha"))
+        {
+            ThrownWood woodScript = collision.GetComponent<ThrownWood>();
+
+            // Se a lenha não existir ou não for coletável, ignora.
+            // O "woodScript == null" é para lenhas que podem estar no chão sem esse script.
+            if (woodScript != null && !woodScript.isCollectible)
+            {
+                return;
+            }
+
+            // Se passar, a lenha é coletável.
+            lenhaNoInventario++;
+            Destroy(collision.gameObject);
+            ThrowWood(); // Lança a lenha automaticamente ao coletar
+        }
+    }
+
     // NOVO: Visualizar o raio de ataque no Editor da Unity
     private void OnDrawGizmosSelected()
     {
@@ -179,17 +204,23 @@ public class PlayerController : MonoBehaviour
     }
     public void ThrowWood()
     {
-        
-            lenhaNoInventario--;
-            // AudioManager.Instance.PlaySoundEffect(SEU_INDICE_DE_ARREMESSO_AQUI);
 
-            GameObject wood = Instantiate(woodPrefab, transform.position, Quaternion.identity);
-            ThrownWood thrownWoodScript = wood.GetComponent<ThrownWood>();
+        lenhaNoInventario--;
+        // AudioManager.Instance.PlaySoundEffect(SEU_INDICE_DE_ARREMESSO_AQUI);
 
-            if (thrownWoodScript != null)
-            {
-                // Inicia a animação de arremesso em direção à fogueira
-                thrownWoodScript.Launch(bonfireTransform.position, throwDuration);
-            }
+        GameObject wood = Instantiate(woodPrefab, transform.position, Quaternion.identity);
+        ThrownWood thrownWoodScript = wood.GetComponent<ThrownWood>();
+
+        if (thrownWoodScript != null)
+        {
+            // Inicia a animação de arremesso em direção à fogueira
+            thrownWoodScript.Launch(bonfireTransform.position, throwDuration);
+        }
     }
+
+    public void ResetDashCooldown()
+    {
+        lastDashTime = -Mathf.Infinity; // Reseta o cooldown do dash
+    }
+
 }

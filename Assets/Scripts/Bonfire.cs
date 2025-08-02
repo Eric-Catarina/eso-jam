@@ -15,6 +15,7 @@ public class Bonfire : MonoBehaviour
     [Tooltip("Multiplicador da taxa de queima quando a fogueira está com vida máxima.")]
     public float maxHealthBurnMultiplier = 2.5f; // A 100% de vida, queima 2.5x mais rápido
     
+    public float logHealingAmount = 10f; // Quanto de vida a fogueira ganha ao coletar lenha
     // Curva para um controle suave da taxa de queima
     [Tooltip("Controla como a taxa de queima aumenta com a vida. X=0 (0% vida), Y=1 (taxa base). X=1 (100% vida), Y=2.5 (taxa máxima).")]
     public AnimationCurve burnRateCurve = AnimationCurve.EaseInOut(0, 1, 1, 15f);
@@ -103,7 +104,7 @@ public class Bonfire : MonoBehaviour
             // Aqui você pode adicionar lógica para coletar a lenha, como:
             GameManager.Instance.AddXp(1);
             Destroy(other.gameObject); // Remove a lenha do jogo
-            currentHealth += 10; // Por exemplo, adiciona 10 de vida à fogueira
+            currentHealth += logHealingAmount; // Por exemplo, adiciona 10 de vida à fogueira
             currentHealth = Mathf.Min(currentHealth, maxHealth); // Garante que não ultrapasse o máximo
             Debug.Log("Lenha coletada! Vida da fogueira aumentada.");
             GameManager.Instance.SpawnOrangeExplosion(transform.position); // Efeito visual de coleta

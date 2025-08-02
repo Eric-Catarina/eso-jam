@@ -1797,6 +1797,7 @@ MonoBehaviour:
   currentHealth: 100
   baseBurnRate: 0.5
   maxHealthBurnMultiplier: 15
+  logHealingAmount: 10
   burnRateCurve:
     serializedVersion: 2
     m_Curve:
@@ -1913,7 +1914,7 @@ MonoBehaviour:
   baseSpawnRate: 0.5
   spawnRadius: 30
   fastEnemyChance: 0.334
-  tankEnemyChance: 0.16
+  tankEnemyChance: 0.076
 --- !u!1 &551480012
 GameObject:
   m_ObjectHideFlags: 0
@@ -2056,6 +2057,18 @@ MonoBehaviour:
         m_TargetAssemblyTypeName: GameManager, Assembly-CSharp
         m_MethodName: SpawnOrangeExplosionOnBonfire
         m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 551480012}
+        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
+        m_MethodName: SetActive
+        m_Mode: 6
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -4255,7 +4268,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveSpeed: 5
   acceleration: 10
-  dashForce: 20
+  dashForce: 30
   dashDuration: 0.15
   dashCooldown: 1
   dashKey: 32
@@ -4663,7 +4676,7 @@ MonoBehaviour:
       outWeight: 0
     - serializedVersion: 3
       time: 1
-      value: 3
+      value: 2
       inSlope: 0
       outSlope: 0
       tangentMode: 0
@@ -4687,7 +4700,7 @@ MonoBehaviour:
       outWeight: 0
     - serializedVersion: 3
       time: 1
-      value: 1.5
+      value: 1.25
       inSlope: 0
       outSlope: 0
       tangentMode: 0

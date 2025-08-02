@@ -77,7 +77,7 @@ public abstract class Enemy : MonoBehaviour
 
         if (fireDeath)
         {
-                            AudioManager.Instance.PlaySoundEffect(6);
+            AudioManager.Instance.PlaySoundEffect(6);
 
             GameManager.Instance.SpawnOrangeExplosion(transform.position);
             Destroy(gameObject);

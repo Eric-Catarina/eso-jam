@@ -53,20 +53,11 @@ public class GameManager : MonoBehaviour
     private void Start()
     {
         // Garante que tudo esteja pausado ou inativo no começo
-        Time.timeScale = 1f; // Reseta a escala de tempo
         losePanel.SetActive(false);
         if (winPanel != null) winPanel.SetActive(false);
         
         // Se tiver um painel inicial, mostre-o. Senão, inicie o jogo direto.
-        if (startPanel != null)
-        {
-            startPanel.SetActive(true);
-            Time.timeScale = 0f; // Pausa o jogo até o jogador clicar em "Start"
-        }
-        else
-        {
-            StartGame();
-        }
+        Time.timeScale = 0f; // Pausa o jogo até o jogador clicar em "Start"
     }
 
     // Este método será chamado pelo botão "Start" da sua UI
