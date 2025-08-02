@@ -59,8 +59,7 @@ public class PlayerController : MonoBehaviour
     {
         HandleInput();
         HandleDashInput();
-        HandleThrowInput();
-        HandleAimingAndThrowing(); // Substitui o antigo HandleThrowInput
+        // HandleAimingAndThrowing(); // Substitui o antigo HandleThrowInput
         HandleMeleeAttack();
     }
 
@@ -140,23 +139,6 @@ public class PlayerController : MonoBehaviour
         isDashing = false;
     }
 
-    void HandleThrowInput()
-    {
-        if (Input.GetMouseButtonDown(0) && woodPrefab != null && lenhaNoInventario > 0)
-        {
-            Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            mouseWorldPos.z = 0f;
-            Vector2 throwDirection = (mouseWorldPos - transform.position).normalized;
-            Transform spawnPoint = woodSpawnPoint != null ? woodSpawnPoint : transform;
-            GameObject wood = Instantiate(woodPrefab, spawnPoint.position, Quaternion.identity);
-            Rigidbody2D woodRb = wood.GetComponent<Rigidbody2D>();
-            if (woodRb != null)
-            {
-                woodRb.AddForce(throwDirection * throwForce, ForceMode2D.Impulse);
-            }
-            lenhaNoInventario--;
-        }
-    }
 
     void HandleDashInput()
     {
@@ -166,27 +148,28 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-// Dentro de PlayerController.cs
+    // Dentro de PlayerController.cs
 
-private void OnTriggerEnter2D(Collider2D collision)
-{
-    if (collision.CompareTag("Lenha"))
+    private void OnTriggerEnter2D(Collider2D collision)
     {
-        // Pega o script da lenha que colidiu
-        ThrownWood woodScript = collision.GetComponent<ThrownWood>();
-        
-        // Se a lenha não existir ou não for coletável, ignora.
-        // O "woodScript == null" é para lenhas que podem estar no chão sem esse script.
-        if (woodScript != null && !woodScript.isCollectible)
+        if (collision.CompareTag("Lenha"))
         {
-            return; 
-        }
+            // Pega o script da lenha que colidiu
+            ThrownWood woodScript = collision.GetComponent<ThrownWood>();
 
-        // Se passar, a lenha é coletável.
-        lenhaNoInventario++;
-        Destroy(collision.gameObject);
+            // Se a lenha não existir ou não for coletável, ignora.
+            // O "woodScript == null" é para lenhas que podem estar no chão sem esse script.
+            if (woodScript != null && !woodScript.isCollectible)
+            {
+                return;
+            }
+
+            // Se passar, a lenha é coletável.
+            lenhaNoInventario++;
+            Destroy(collision.gameObject);
+            ThrowWood(); // Lança a lenha automaticamente ao coletar
+        }
     }
-}
     // NOVO: Visualizar o raio de ataque no Editor da Unity
     private void OnDrawGizmosSelected()
     {
@@ -242,5 +225,20 @@ private void OnTriggerEnter2D(Collider2D collision)
         {
             aimLine.enabled = false;
         }
+    }
+    public void ThrowWood()
+    {
+        
+            lenhaNoInventario--;
+            // AudioManager.Instance.PlaySoundEffect(SEU_INDICE_DE_ARREMESSO_AQUI);
+
+            GameObject wood = Instantiate(woodPrefab, transform.position, Quaternion.identity);
+            ThrownWood thrownWoodScript = wood.GetComponent<ThrownWood>();
+
+            if (thrownWoodScript != null)
+            {
+                // Inicia a animação de arremesso em direção à fogueira
+                thrownWoodScript.Launch(bonfireTransform.position, throwDuration);
+            }
     }
 }

@@ -1,6 +1,6 @@
 // Assets/Scripts/Enemy.cs
 using UnityEngine;
-using DG.Tweening; // Importe o DOTween para o feedback visual
+using DG.Tweening;
 
 public class Enemy : MonoBehaviour
 {
@@ -10,7 +10,16 @@ public class Enemy : MonoBehaviour
     private int currentHealth;
 
     [Header("Alvo")]
-    private Transform target; // O alvo do inimigo (a fogueira)
+    private Transform target;
+
+    // --- NOVO ---
+    [Header("Drops")]
+    [Tooltip("O prefab da lenha que o inimigo pode dropar ao morrer.")]
+    public GameObject woodDropPrefab;
+    [Tooltip("A chance de dropar a lenha, de 0.0 a 1.0 (ex: 0.5 para 50%).")]
+    [Range(0f, 1f)]
+    public float woodDropChance = 0.5f;
+    // --- FIM DO NOVO ---
 
     private SpriteRenderer sr;
 
@@ -19,7 +28,6 @@ public class Enemy : MonoBehaviour
         currentHealth = maxHealth;
         sr = GetComponent<SpriteRenderer>();
 
-        // Encontra a fogueira pela tag "Bonfire"
         GameObject bonfireObject = GameObject.FindGameObjectWithTag("Bonfire");
         if (bonfireObject != null)
         {
@@ -33,26 +41,20 @@ public class Enemy : MonoBehaviour
 
     void Update()
     {
-        // Movimenta o inimigo em direção ao alvo
         if (target != null)
         {
             transform.position = Vector2.MoveTowards(transform.position, target.position, speed * Time.deltaTime);
         }
     }
 
-    // Método público para que outros objetos possam causar dano
     public void TakeDamage(int damage)
     {
         currentHealth -= damage;
 
-        // Feedback visual de dano: pisca em branco rapidamente
         if (sr != null)
         {
             sr.DOColor(Color.white, 0.1f).SetLoops(2, LoopType.Yoyo);
         }
-        
-        // Toca som de dano
-        // AudioManager.Instance.PlaySoundEffect(SEU_INDICE_DE_DANO_AQUI);
 
         if (currentHealth <= 0)
         {
@@ -60,24 +62,27 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    private void Die()
+    // --- MÉTODO ATUALIZADO ---// Em Enemy.cs, método Die()
+
+private void Die()
+{
+    if (woodDropPrefab != null)
     {
-        // Toca som de morte
-        // AudioManager.Instance.PlaySoundEffect(SEU_INDICE_DE_MORTE_AQUI);
-        
-        // Aqui você pode adicionar um efeito de partículas de morte antes de destruir
-        
-        Destroy(gameObject);
+        // Lógica de drop atualizada para incluir o bônus do GameManager
+        float totalDropChance = woodDropChance + GameManager.Instance.bonusWoodDropChance;
+        if (Random.value < totalDropChance)
+        {
+            Instantiate(woodDropPrefab, transform.position, Quaternion.identity);
+        }
     }
-    
-    // Opcional: dano ao colidir com a fogueira
+    Destroy(gameObject);
+}
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision.CompareTag("Bonfire"))
         {
-            // Adicione a lógica de dano à fogueira se quiser
-            // collision.GetComponent<Bonfire>().ReceberDano(1);
-            Destroy(gameObject);
+            collision.GetComponent<Bonfire>().ReceberDano(1); // Exemplo de dano
+            Die(); // O inimigo morre ao tocar a fogueira também
         }
     }
 }

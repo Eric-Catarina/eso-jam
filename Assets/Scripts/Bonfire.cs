@@ -3,15 +3,15 @@ using System;
 using UnityEngine;
 public class Bonfire : MonoBehaviour
 {
-    public int energia = 10; // Comece com alguma energia inicial
-    public float taxaDePerdaDeEnergia = 0.5f; // Perde 0.5 de energia por segundo
+    // Substitua "energia" por um sistema de vida atual/máxima
+    public float maxHealth = 100f;
+    public float currentHealth;
+    public float taxaDePerdaDeEnergia = 0.5f; // Agora é um stat público
     public LightFlicker luzDaFogueira; // Arraste o objeto da luz da fogueira aqui no Inspector
-
-    private float energiaAtual;
 
     void Start()
     {
-        energiaAtual = energia;
+        currentHealth = maxHealth;
         // Adicione uma verificação para a luz, se ela for essencial
         if (luzDaFogueira == null)
         {
@@ -21,20 +21,18 @@ public class Bonfire : MonoBehaviour
 
     void Update()
     {
-        // Perder energia com o tempo
-        energiaAtual -= taxaDePerdaDeEnergia * Time.deltaTime;
+        currentHealth -= taxaDePerdaDeEnergia * Time.deltaTime;
 
-        // Atualiza a intensidade da luz com base na energia
         if (luzDaFogueira != null)
         {
-            // Mapeia a energia (ex: 0 a 10) para uma intensidade de luz (ex: 0.5 a 1.5)
-            luzDaFogueira.baseIntensity = Mathf.Lerp(0.5f, 1.5f, energiaAtual / energia);
-            luzDaFogueira.baseOuterRadius = Mathf.Lerp(3f, 7f, energiaAtual / energia);
+            // Mapeia a vida (0 a maxHealth) para a intensidade da luz
+            luzDaFogueira.baseIntensity = Mathf.Lerp(0.3f, 1.5f, currentHealth / maxHealth);
+            luzDaFogueira.baseOuterRadius = Mathf.Lerp(2f, 7f, currentHealth / maxHealth);
         }
 
 
         // Condição de derrota (Game Over)
-        if (energiaAtual <= 0)
+        if (currentHealth <= 0)
         {
             Debug.Log("A FOGUEIRA APAGOU! GAME OVER.");
             // Aqui você pode adicionar a lógica de fim de jogo, como:
@@ -43,30 +41,38 @@ public class Bonfire : MonoBehaviour
         }
     }
 
+    // O OnTriggerEnter2D para lenha agora acontece no Player, então este pode ser simplificado ou removido
+    // Se outros objetos além da lenha podem interagir, mantenha-o. Senão, pode apagar.
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision.CompareTag("Lenha"))
         {
-            energiaAtual++;
-            // Garante que a energia não passe do máximo
-            energiaAtual = Mathf.Clamp(energiaAtual, 0, energia);
-            Destroy(collision.gameObject);
-            // Toca um som ao alimentar a fogueira!
-            // AudioManager.Instance.PlaySoundEffect(SEU_INDICE_DE_SOM_AQUI);
+            // Aqui você pode adicionar lógica para coletar a lenha, como:
+            GameManager.Instance.AddXp(1);
+            Destroy(collision.gameObject); // Remove a lenha do jogo
+            currentHealth += 10; // Por exemplo, adiciona 10 de vida à fogueira
+            currentHealth = Mathf.Min(currentHealth, maxHealth); // Garante que não ultrapasse o máximo
+            Debug.Log("Lenha coletada! Vida da fogueira aumentada.");
         }
+          }
+
+    public void ReceberDano(int dano)
+    {
+        currentHealth -= dano;
     }
 
-// Em Bonfire.cs
+    // --- NOVOS MÉTODOS PARA UPGRADES ---
+    public void IncreaseMaxHealth(float multiplier)
+    {
+        float oldMaxHealth = maxHealth;
+        maxHealth *= multiplier;
+        // Cura a fogueira pela quantidade que a vida máxima aumentou
+        currentHealth += maxHealth - oldMaxHealth;
+        currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth); // Garante que não ultrapasse o novo máximo
+    }
 
-// ... seu código existente ...
-
-// Implemente o método que estava faltando
-public void ReceberDano(int dano)
-{
-    energiaAtual -= dano;
-    // Toca um som de dano na fogueira
-    // Adiciona um efeito de partículas de fumaça, etc.
-}
-
-// O resto do seu código de Bonfire.cs continua igual...
+    public void HealToFull()
+    {
+        currentHealth = maxHealth;
+    }
 }

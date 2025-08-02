@@ -53,6 +53,7 @@ Assets/
     LightFlicker.cs
     PlayerController.cs
     SwordSlashEffect.cs
+    ThrownWood.cs
 </directory_structure>
 
 <files>
@@ -418,6 +419,153 @@ public class SwordSlashEffect : MonoBehaviour
 }
 </file>
 
+<file path="Assets/Scripts/ThrownWood.cs">
+// ThrownWood.cs
+using UnityEngine;
+using DG.Tweening;
+
+[RequireComponent(typeof(Rigidbody2D))]
+public class ThrownWood : MonoBehaviour
+{
+    [Header("Configuração da Animação")]
+    public float arcHeight = 2f;
+    public float spinSpeed = 720f;
+
+    // Flag para controlar se a lenha pode ser coletada
+    public bool isCollectible = false;
+
+    private void Start()
+    {
+        Rigidbody2D rb = GetComponent<Rigidbody2D>();
+        rb.isKinematic = true;
+        
+        Collider2D col = GetComponent<Collider2D>();
+        if (col != null) col.isTrigger = true;
+
+        // Torna a lenha coletável após um curto período para evitar
+        // que o jogador a pegue de volta instantaneamente.
+        // DOVirtual.DelayedCall é uma forma limpa do DOTween de fazer um timer.
+        DOVirtual.DelayedCall(0.2f, () => {
+            isCollectible = true;
+        });
+    }
+
+    public void Launch(Vector3 targetPosition, float duration)
+    {
+        // ... seu código de Launch continua exatamente o mesmo ...
+        Sequence launchSequence = DOTween.Sequence();
+        Vector3 startPoint = transform.position;
+        Vector3 midPoint = Vector3.Lerp(startPoint, targetPosition, 0.5f) + (Vector3.up * arcHeight);
+        Vector3[] path = { midPoint, targetPosition };
+        launchSequence.Append(transform.DOPath(path, duration, PathType.CatmullRom).SetEase(Ease.OutQuad));
+        launchSequence.Join(transform.DORotate(new Vector3(0, 0, spinSpeed * duration), duration, RotateMode.FastBeyond360).SetEase(Ease.Linear));
+    }
+}
+</file>
+
+<file path="Assets/Scripts/Enemy.cs">
+// Assets/Scripts/Enemy.cs
+using UnityEngine;
+using DG.Tweening;
+
+public class Enemy : MonoBehaviour
+{
+    [Header("Atributos")]
+    public float speed = 3f;
+    public int maxHealth = 2;
+    private int currentHealth;
+
+    [Header("Alvo")]
+    private Transform target;
+
+    // --- NOVO ---
+    [Header("Drops")]
+    [Tooltip("O prefab da lenha que o inimigo pode dropar ao morrer.")]
+    public GameObject woodDropPrefab;
+    [Tooltip("A chance de dropar a lenha, de 0.0 a 1.0 (ex: 0.5 para 50%).")]
+    [Range(0f, 1f)]
+    public float woodDropChance = 0.5f;
+    // --- FIM DO NOVO ---
+
+    private SpriteRenderer sr;
+
+    void Start()
+    {
+        currentHealth = maxHealth;
+        sr = GetComponent<SpriteRenderer>();
+
+        GameObject bonfireObject = GameObject.FindGameObjectWithTag("Bonfire");
+        if (bonfireObject != null)
+        {
+            target = bonfireObject.transform;
+        }
+        else
+        {
+            Debug.LogError("Inimigo não encontrou a fogueira! Verifique se o objeto Bonfire tem a tag 'Bonfire'.");
+        }
+    }
+
+    void Update()
+    {
+        if (target != null)
+        {
+            transform.position = Vector2.MoveTowards(transform.position, target.position, speed * Time.deltaTime);
+        }
+    }
+
+    public void TakeDamage(int damage)
+    {
+        currentHealth -= damage;
+
+        if (sr != null)
+        {
+            sr.DOColor(Color.white, 0.1f).SetLoops(2, LoopType.Yoyo);
+        }
+
+        if (currentHealth <= 0)
+        {
+            Die();
+        }
+    }
+
+    // --- MÉTODO ATUALIZADO ---
+    private void Die()
+    {
+        // AudioManager.Instance.PlaySoundEffect(SEU_INDICE_DE_MORTE_AQUI);
+
+        // --- INÍCIO DA LÓGICA DE DROP ---
+        
+        // Primeiro, verifica se o prefab da lenha foi atribuído no Inspector
+        if (woodDropPrefab != null)
+        {
+            // Gera um número aleatório entre 0.0 e 1.0
+            // Se for menor que a chance de drop, a condição é verdadeira.
+            if (Random.value < woodDropChance)
+            {
+                // Instancia o prefab da lenha na posição exata onde o inimigo morreu
+                Instantiate(woodDropPrefab, transform.position, Quaternion.identity);
+            }
+        }
+        
+        // --- FIM DA LÓGICA DE DROP ---
+
+        // Efeito de partículas de morte, etc.
+        
+        // Por último, destrói o GameObject do inimigo
+        Destroy(gameObject);
+    }
+    
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.CompareTag("Bonfire"))
+        {
+            collision.GetComponent<Bonfire>().ReceberDano(1); // Exemplo de dano
+            Die(); // O inimigo morre ao tocar a fogueira também
+        }
+    }
+}
+</file>
+
 <file path="Assets/Scripts/Bonfire.cs">
 // Dentro de public class Bonfire : MonoBehaviour
 using System;
@@ -477,96 +625,19 @@ public class Bonfire : MonoBehaviour
         }
     }
 
-    public void ReceberDano(int danoAFogueira)
-    {
-        throw new NotImplementedException();
-    }
-}
-</file>
+// Em Bonfire.cs
 
-<file path="Assets/Scripts/Enemy.cs">
-// Assets/Scripts/Enemy.cs
-using UnityEngine;
-using DG.Tweening; // Importe o DOTween para o feedback visual
+// ... seu código existente ...
 
-public class Enemy : MonoBehaviour
+// Implemente o método que estava faltando
+public void ReceberDano(int dano)
 {
-    [Header("Atributos")]
-    public float speed = 3f;
-    public int maxHealth = 2;
-    private int currentHealth;
+    energiaAtual -= dano;
+    // Toca um som de dano na fogueira
+    // Adiciona um efeito de partículas de fumaça, etc.
+}
 
-    [Header("Alvo")]
-    private Transform target; // O alvo do inimigo (a fogueira)
-
-    private SpriteRenderer sr;
-
-    void Start()
-    {
-        currentHealth = maxHealth;
-        sr = GetComponent<SpriteRenderer>();
-
-        // Encontra a fogueira pela tag "Bonfire"
-        GameObject bonfireObject = GameObject.FindGameObjectWithTag("Bonfire");
-        if (bonfireObject != null)
-        {
-            target = bonfireObject.transform;
-        }
-        else
-        {
-            Debug.LogError("Inimigo não encontrou a fogueira! Verifique se o objeto Bonfire tem a tag 'Bonfire'.");
-        }
-    }
-
-    void Update()
-    {
-        // Movimenta o inimigo em direção ao alvo
-        if (target != null)
-        {
-            transform.position = Vector2.MoveTowards(transform.position, target.position, speed * Time.deltaTime);
-        }
-    }
-
-    // Método público para que outros objetos possam causar dano
-    public void TakeDamage(int damage)
-    {
-        currentHealth -= damage;
-
-        // Feedback visual de dano: pisca em branco rapidamente
-        if (sr != null)
-        {
-            sr.DOColor(Color.white, 0.1f).SetLoops(2, LoopType.Yoyo);
-        }
-        
-        // Toca som de dano
-        // AudioManager.Instance.PlaySoundEffect(SEU_INDICE_DE_DANO_AQUI);
-
-        if (currentHealth <= 0)
-        {
-            Die();
-        }
-    }
-
-    private void Die()
-    {
-        // Toca som de morte
-        // AudioManager.Instance.PlaySoundEffect(SEU_INDICE_DE_MORTE_AQUI);
-        
-        // Aqui você pode adicionar um efeito de partículas de morte antes de destruir
-        
-        Destroy(gameObject);
-    }
-    
-    // Opcional: dano ao colidir com a fogueira
-    private void OnTriggerEnter2D(Collider2D collision)
-    {
-        if (collision.CompareTag("Bonfire"))
-        {
-            // Adicione a lógica de dano à fogueira se quiser
-            // collision.GetComponent<Bonfire>().ReceberDano(1);
-            Destroy(gameObject);
-        }
-    }
+// O resto do seu código de Bonfire.cs continua igual...
 }
 </file>
 
@@ -608,17 +679,31 @@ public class PlayerController : MonoBehaviour
     public GameObject slashEffectPrefab;        // Efeito visual opcional para o ataque
     private float lastAttackTime = -Mathf.Infinity; // Timer para o ataque
 
+    [Header("Lançar Lenha")]
+    public float throwDuration = 0.7f; // Duração do voo da lenha
+    private LineRenderer aimLine;
+    private Transform bonfireTransform;
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+
+        // Pega a referência do LineRenderer e o desativa
+        aimLine = GetComponent<LineRenderer>();
+        aimLine.enabled = false;
+
+        // Encontra a fogueira na cena para saber o alvo do arremesso
+        GameObject bonfireObj = GameObject.FindGameObjectWithTag("Bonfire");
+        if (bonfireObj != null)
+        {
+            bonfireTransform = bonfireObj.transform;
+        }
     }
 
     void Update()
     {
         HandleInput();
         HandleDashInput();
-        HandleThrowInput();
-
+        // HandleAimingAndThrowing(); // Substitui o antigo HandleThrowInput
         HandleMeleeAttack();
     }
 
@@ -632,55 +717,55 @@ public class PlayerController : MonoBehaviour
     }
 
     // NOVO: Lógica do ataque automático
-   void HandleMeleeAttack()
-{
-    // A lógica para verificar o cooldown permanece a mesma
-    if (Time.time >= lastAttackTime + attackCooldown)
+    void HandleMeleeAttack()
     {
-        Collider2D[] enemiesInRange = Physics2D.OverlapCircleAll(transform.position, attackRadius, enemyLayer);
-
-        if (enemiesInRange.Length > 0)
+        // A lógica para verificar o cooldown permanece a mesma
+        if (Time.time >= lastAttackTime + attackCooldown)
         {
-            Transform closestEnemy = enemiesInRange
-                .OrderBy(enemy => Vector2.Distance(transform.position, enemy.transform.position))
-                .FirstOrDefault()?.transform;
+            Collider2D[] enemiesInRange = Physics2D.OverlapCircleAll(transform.position, attackRadius, enemyLayer);
 
-            if (closestEnemy != null)
+            if (enemiesInRange.Length > 0)
             {
-                lastAttackTime = Time.time;
-                Enemy enemyScript = closestEnemy.GetComponent<Enemy>();
+                Transform closestEnemy = enemiesInRange
+                    .OrderBy(enemy => Vector2.Distance(transform.position, enemy.transform.position))
+                    .FirstOrDefault()?.transform;
 
-                if (enemyScript != null)
+                if (closestEnemy != null)
                 {
-                    enemyScript.TakeDamage(attackDamage);
+                    lastAttackTime = Time.time;
+                    Enemy enemyScript = closestEnemy.GetComponent<Enemy>();
 
-                    // --- INÍCIO DA LÓGICA DE ROTAÇÃO ---
-
-                    if (slashEffectPrefab != null)
+                    if (enemyScript != null)
                     {
-                        // 1. Calcula o vetor de direção do jogador para o inimigo.
-                        //    Isso nos dá a "seta" que aponta para o alvo.
-                        Vector2 directionToEnemy = (closestEnemy.position - transform.position).normalized;
+                        enemyScript.TakeDamage(attackDamage);
 
-                        // 2. Converte essa direção em um ângulo em graus.
-                        //    Mathf.Atan2 é perfeito para isso, e Rad2Deg converte de radianos para graus.
-                        float angle = Mathf.Atan2(directionToEnemy.y, directionToEnemy.x) * Mathf.Rad2Deg;
+                        // --- INÍCIO DA LÓGICA DE ROTAÇÃO ---
 
-                        // 3. Cria a rotação final (Quaternion) que será usada na instanciação.
-                        //    A rotação acontece no eixo Z em um jogo 2D.
-                        Quaternion targetRotation = Quaternion.Euler(0f, 0f, angle);
+                        if (slashEffectPrefab != null)
+                        {
+                            // 1. Calcula o vetor de direção do jogador para o inimigo.
+                            //    Isso nos dá a "seta" que aponta para o alvo.
+                            Vector2 directionToEnemy = (closestEnemy.position - transform.position).normalized;
 
-                        // 4. Instancia o prefab na posição do inimigo e com a rotação que acabamos de calcular.
-                        //    Substituímos o Quaternion.identity pela nossa targetRotation.
-                        Instantiate(slashEffectPrefab, closestEnemy.position, targetRotation);
+                            // 2. Converte essa direção em um ângulo em graus.
+                            //    Mathf.Atan2 é perfeito para isso, e Rad2Deg converte de radianos para graus.
+                            float angle = Mathf.Atan2(directionToEnemy.y, directionToEnemy.x) * Mathf.Rad2Deg;
+
+                            // 3. Cria a rotação final (Quaternion) que será usada na instanciação.
+                            //    A rotação acontece no eixo Z em um jogo 2D.
+                            Quaternion targetRotation = Quaternion.Euler(0f, 0f, angle);
+
+                            // 4. Instancia o prefab na posição do inimigo e com a rotação que acabamos de calcular.
+                            //    Substituímos o Quaternion.identity pela nossa targetRotation.
+                            Instantiate(slashEffectPrefab, closestEnemy.position, targetRotation);
+                        }
+
+                        // --- FIM DA LÓGICA DE ROTAÇÃO ---
                     }
-                    
-                    // --- FIM DA LÓGICA DE ROTAÇÃO ---
                 }
             }
         }
     }
-}
 
     // ... Seus outros métodos (HandleInput, Dash, etc.) ...
     void HandleInput()
@@ -698,23 +783,6 @@ public class PlayerController : MonoBehaviour
         isDashing = false;
     }
 
-    void HandleThrowInput()
-    {
-        if (Input.GetMouseButtonDown(0) && woodPrefab != null && lenhaNoInventario > 0)
-        {
-            Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            mouseWorldPos.z = 0f;
-            Vector2 throwDirection = (mouseWorldPos - transform.position).normalized;
-            Transform spawnPoint = woodSpawnPoint != null ? woodSpawnPoint : transform;
-            GameObject wood = Instantiate(woodPrefab, spawnPoint.position, Quaternion.identity);
-            Rigidbody2D woodRb = wood.GetComponent<Rigidbody2D>();
-            if (woodRb != null)
-            {
-                woodRb.AddForce(throwDirection * throwForce, ForceMode2D.Impulse);
-            }
-            lenhaNoInventario--;
-        }
-    }
 
     void HandleDashInput()
     {
@@ -724,20 +792,98 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    // Dentro de PlayerController.cs
+
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision.CompareTag("Lenha"))
         {
+            // Pega o script da lenha que colidiu
+            ThrownWood woodScript = collision.GetComponent<ThrownWood>();
+
+            // Se a lenha não existir ou não for coletável, ignora.
+            // O "woodScript == null" é para lenhas que podem estar no chão sem esse script.
+            if (woodScript != null && !woodScript.isCollectible)
+            {
+                return;
+            }
+
+            // Se passar, a lenha é coletável.
             lenhaNoInventario++;
             Destroy(collision.gameObject);
+            ThrowWood(); // Lança a lenha automaticamente ao coletar
         }
     }
-
     // NOVO: Visualizar o raio de ataque no Editor da Unity
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackRadius);
+    }
+
+    void HandleAimingAndThrowing()
+    {
+        // Se não tiver lenha, não faz nada
+        if (lenhaNoInventario <= 0 || bonfireTransform == null)
+        {
+            aimLine.enabled = false;
+            return;
+        }
+
+        // Pega a posição do mouse no mundo do jogo
+        Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        mouseWorldPos.z = 0f;
+
+        // Ponto de onde a lenha/mira sai
+        Vector3 spawnPos = woodSpawnPoint != null ? woodSpawnPoint.position : transform.position;
+
+        // Enquanto o botão do mouse estiver pressionado, mostra a mira
+        if (Input.GetMouseButton(0))
+        {
+            aimLine.enabled = true;
+            // A mira aponta do jogador na direção do mouse
+            aimLine.SetPosition(0, spawnPos);
+            aimLine.SetPosition(1, mouseWorldPos);
+        }
+
+        // Ao soltar o botão, arremessa a lenha
+        if (Input.GetMouseButtonUp(0))
+        {
+            aimLine.enabled = false; // Esconde a mira
+
+            lenhaNoInventario--;
+            // AudioManager.Instance.PlaySoundEffect(SEU_INDICE_DE_ARREMESSO_AQUI);
+
+            GameObject wood = Instantiate(woodPrefab, spawnPos, Quaternion.identity);
+            ThrownWood thrownWoodScript = wood.GetComponent<ThrownWood>();
+
+            if (thrownWoodScript != null)
+            {
+                // Inicia a animação de arremesso em direção à fogueira
+                thrownWoodScript.Launch(bonfireTransform.position, throwDuration);
+            }
+        }
+
+        // Se o jogador soltar o clique sem querer, esconde a linha
+        if (!Input.GetMouseButton(0) && aimLine.enabled)
+        {
+            aimLine.enabled = false;
+        }
+    }
+    public void ThrowWood()
+    {
+        
+            lenhaNoInventario--;
+            // AudioManager.Instance.PlaySoundEffect(SEU_INDICE_DE_ARREMESSO_AQUI);
+
+            GameObject wood = Instantiate(woodPrefab, transform.position, Quaternion.identity);
+            ThrownWood thrownWoodScript = wood.GetComponent<ThrownWood>();
+
+            if (thrownWoodScript != null)
+            {
+                // Inicia a animação de arremesso em direção à fogueira
+                thrownWoodScript.Launch(bonfireTransform.position, throwDuration);
+            }
     }
 }
 </file>
