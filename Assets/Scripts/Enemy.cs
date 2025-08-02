@@ -7,6 +7,7 @@ public class Enemy : MonoBehaviour
     [Header("Atributos")]
     public float speed = 3f;
     public int maxHealth = 2;
+    public int dano = 4;
     private int currentHealth;
 
     [Header("Alvo")]
@@ -19,6 +20,7 @@ public class Enemy : MonoBehaviour
     [Tooltip("A chance de dropar a lenha, de 0.0 a 1.0 (ex: 0.5 para 50%).")]
     [Range(0f, 1f)]
     public float woodDropChance = 0.5f;
+    private bool fireDeath = false;
     // --- FIM DO NOVO ---
 
     private SpriteRenderer sr;
@@ -74,6 +76,13 @@ private void Die()
             float totalDropChance = woodDropChance + GameManager.Instance.bonusWoodDropChance;
             if (Random.value < totalDropChance)
             {
+                if (fireDeath)
+                {
+                    GameManager.Instance.SpawnOrangeExplosion(transform.position);
+                    Destroy(gameObject);
+
+                    return;
+                }
                 Instantiate(woodDropPrefab, transform.position, Quaternion.identity);
             }
         }
@@ -83,7 +92,8 @@ private void Die()
     {
         if (collision.CompareTag("Bonfire"))
         {
-            collision.GetComponent<Bonfire>().ReceberDano(1); // Exemplo de dano
+            collision.GetComponent<Bonfire>().ReceberDano(dano); // Exemplo de dano
+            fireDeath = true;
             Die(); // O inimigo morre ao tocar a fogueira também
         }
     }

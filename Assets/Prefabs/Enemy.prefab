@@ -100,8 +100,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8228cff8373aa4b939710367becac41c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speed: 0.5
+  speed: 2
   maxHealth: 2
+  dano: 4
   woodDropPrefab: {fileID: 6534654697714713015, guid: e5753f5a1f1768374b65c4be67f0a896, type: 3}
   woodDropChance: 0.5
 --- !u!50 &2590581647312581314

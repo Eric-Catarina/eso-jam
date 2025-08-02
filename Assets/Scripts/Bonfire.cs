@@ -14,10 +14,10 @@ public class Bonfire : MonoBehaviour
     public float baseBurnRate = 0.5f; // Perda de energia por segundo
     [Tooltip("Multiplicador da taxa de queima quando a fogueira está com vida máxima.")]
     public float maxHealthBurnMultiplier = 2.5f; // A 100% de vida, queima 2.5x mais rápido
-
+    
     // Curva para um controle suave da taxa de queima
     [Tooltip("Controla como a taxa de queima aumenta com a vida. X=0 (0% vida), Y=1 (taxa base). X=1 (100% vida), Y=2.5 (taxa máxima).")]
-    public AnimationCurve burnRateCurve = AnimationCurve.EaseInOut(0, 1, 1, 10f);
+    public AnimationCurve burnRateCurve = AnimationCurve.EaseInOut(0, 1, 1, 15f);
 
     [Header("Referências de UI e VFX")]
     [Tooltip("O Slider da UI que representa a vida da fogueira.")]
@@ -27,10 +27,11 @@ public class Bonfire : MonoBehaviour
     [Tooltip("O componente de luz da fogueira.")]
     public LightFlicker bonfireLight;
 
-    // Variáveis para guardar os valores originais das partículas
+    // --- Variáveis Privadas ---
     private float initialParticleGravity;
     private float initialParticleStartSize;
     private float initialParticleStartSpeed;
+    private float initialParticleEmissionRate;
 
     void Start()
     {
@@ -52,13 +53,14 @@ public class Bonfire : MonoBehaviour
             initialParticleGravity = mainModule.gravityModifier.constant;
             initialParticleStartSize = mainModule.startSize.constant;
             initialParticleStartSpeed = mainModule.startSpeed.constant;
+            initialParticleEmissionRate = fireParticleSystem.emission.rateOverTime.constant;
         }
 
         if (healthSlider == null)
         {
             Debug.LogError("Referência para o Health Slider não definida no Bonfire!");
         }
-
+        
         // Configura o slider com os valores iniciais
         UpdateHealthSlider();
     }
@@ -67,14 +69,14 @@ public class Bonfire : MonoBehaviour
     {
         // Calcula a porcentagem de vida atual (0.0 a 1.0)
         float healthPercent = currentHealth / maxHealth;
-
+        
         // Calcula a taxa de queima atual baseada na curva
         float currentBurnMultiplier = burnRateCurve.Evaluate(healthPercent);
         float currentBurnRate = baseBurnRate * currentBurnMultiplier;
 
         // Perde vida com o tempo
         currentHealth -= currentBurnRate * Time.deltaTime;
-
+        
         // Garante que a vida não fique negativa
         currentHealth = Mathf.Max(currentHealth, 0);
 
@@ -129,21 +131,23 @@ public class Bonfire : MonoBehaviour
             var main = fireParticleSystem.main;
 
             // Quanto mais vida, menos gravidade (fogo mais alto e "selvagem")
-            main.gravityModifier = Mathf.Lerp(initialParticleGravity * 0.5f, initialParticleGravity, healthPercent);
+            main.gravityModifier = Mathf.Lerp(initialParticleGravity * 0.5f, initialParticleGravity * 3, healthPercent);
 
             // Quanto mais vida, maior o tamanho inicial das partículas
-            main.startSize = Mathf.Lerp(initialParticleStartSize * 0.5f, initialParticleStartSize * 1.5f, healthPercent);
+            main.startSize = Mathf.Lerp(initialParticleStartSize * 0.5f, initialParticleStartSize * 2f, healthPercent);
 
             // Quanto mais vida, mais rápido as partículas sobem
-            main.startSpeed = Mathf.Lerp(initialParticleStartSpeed * 0.75f, initialParticleStartSpeed * 1.25f, healthPercent);
+            main.startSpeed = Mathf.Lerp(initialParticleStartSpeed * 0.75f, initialParticleStartSpeed * 5f, healthPercent);
+
+            var emission = fireParticleSystem.emission;
+            emission.rateOverTime = Mathf.Lerp(initialParticleEmissionRate * 0.5f, initialParticleEmissionRate * 3f, healthPercent);
         }
 
         // --- Atualiza a Luz ---
         if (bonfireLight != null)
         {
             // Mapeia a vida para a intensidade e raio da luz
-            bonfireLight.baseIntensity = Mathf.Lerp(0.3f, 1.8f, healthPercent);
-            bonfireLight.baseOuterRadius = Mathf.Lerp(2f, 8f, healthPercent);
+            bonfireLight.UpdateLightStrength(healthPercent);
         }
     }
 
@@ -171,12 +175,16 @@ public class Bonfire : MonoBehaviour
         currentHealth += healthGained;
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
         UpdateHealthSlider();
+        
+        // Avisa o componente de luz que seus valores máximos também aumentaram.
+        if (bonfireLight != null)
+        {
+            bonfireLight.UpgradeLightMaximums(multiplier);
+        }
     }
 
     public void HealToFull()
     {
         currentHealth = maxHealth;
     }
-    
-    
 }
