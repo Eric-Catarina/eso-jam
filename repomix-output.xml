@@ -45,75 +45,15 @@ The content is organized as follows:
 Assets/
   Scripts/
     AudioManager.cs
+    Bonfire.cs
     DashGost.cs
     JiggleEffect.cs
+    LightFlicker.cs
     PlayerController.cs
 </directory_structure>
 
 <files>
 This section contains the contents of the repository's files.
-
-<file path="Assets/Scripts/DashGost.cs">
-using UnityEngine;
-
-public class DashGhost : MonoBehaviour
-{
-    public float duration = 0.3f;
-    private SpriteRenderer sr;
-
-    void Start()
-    {
-        sr = GetComponent<SpriteRenderer>();
-        sr.sortingOrder -= 1; // Fica atrás do player
-        Destroy(gameObject, duration);
-    }
-
-    void Update()
-    {
-        if (sr != null)
-        {
-            Color color = sr.color;
-            color.a -= Time.deltaTime / duration;
-            sr.color = color;
-        }
-    }
-}
-</file>
-
-<file path="Assets/Scripts/JiggleEffect.cs">
-using UnityEngine;
-using DG.Tweening;
-
-public class JiggleEffect : MonoBehaviour
-{
-    [Header("Configuração do Jiggle")]
-    public float scaleAmount = 0.05f;       // Quanto a escala oscila
-    public float positionAmount = 0.05f;    // Quanto a posição oscila
-    public float duration = 0.3f;           // Duração de cada fase
-
-    private Vector3 originalScale;
-    private Vector3 originalPos;
-
-    void Start()
-    {
-        originalScale = transform.localScale;
-        originalPos = transform.localPosition;
-
-        StartJiggle();
-    }
-
-    void StartJiggle()
-    {
-        Sequence seq = DOTween.Sequence().SetLoops(-1, LoopType.Yoyo);
-
-        seq.Append(transform.DOScale(originalScale + new Vector3(scaleAmount, -scaleAmount, 0), duration).SetEase(Ease.InOutSine));
-        seq.Join(transform.DOLocalMove(originalPos + new Vector3(positionAmount, positionAmount, 0), duration).SetEase(Ease.InOutSine));
-
-        seq.Append(transform.DOScale(originalScale + new Vector3(-scaleAmount, scaleAmount, 0), duration).SetEase(Ease.InOutSine));
-        seq.Join(transform.DOLocalMove(originalPos + new Vector3(-positionAmount, -positionAmount, 0), duration).SetEase(Ease.InOutSine));
-    }
-}
-</file>
 
 <file path="Assets/Scripts/AudioManager.cs">
 using UnityEngine;
@@ -258,9 +198,141 @@ public class AudioManager : MonoBehaviour
 }
 </file>
 
-<file path="Assets/Scripts/PlayerController.cs">
+<file path="Assets/Scripts/Bonfire.cs">
+using UnityEngine;
+
+public class Bonfire : MonoBehaviour
+{
+    public int energia = 0;
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.CompareTag("Lenha"))
+        {
+            energia++; // ou algum sistema mais complexo
+            Destroy(collision.gameObject);
+        }
+    }
+}
+</file>
+
+<file path="Assets/Scripts/DashGost.cs">
+using UnityEngine;
+
+public class DashGhost : MonoBehaviour
+{
+    public float duration = 0.3f;
+    private SpriteRenderer sr;
+
+    void Start()
+    {
+        sr = GetComponent<SpriteRenderer>();
+        if (sr == null)
+        {
+            Debug.LogWarning("DashGhost: SpriteRenderer não encontrado!");
+            Destroy(gameObject); // Se não tem sprite, destrói
+            return;
+        }
+
+        sr.sortingOrder -= 1;
+        Color color = sr.color;
+        color.a = 0.8f; // começa com transparência visível
+        sr.color = color;
+
+        Destroy(gameObject, duration);
+    }
+
+    void Update()
+    {
+        if (sr == null) return;
+
+        Color color = sr.color;
+        color.a -= Time.deltaTime / duration;
+        sr.color = color;
+    }
+}
+</file>
+
+<file path="Assets/Scripts/JiggleEffect.cs">
 using UnityEngine;
 using DG.Tweening;
+
+public class JiggleEffect : MonoBehaviour
+{
+    [Header("Configuração do Jiggle")]
+    public float scaleAmount = 0.05f;       // Quanto a escala oscila
+    public float positionAmount = 0.05f;    // Quanto a posição oscila
+    public float duration = 0.3f;           // Duração de cada fase
+
+    private Vector3 originalScale;
+    private Vector3 originalPos;
+
+    void Start()
+    {
+        originalScale = transform.localScale;
+        originalPos = transform.localPosition;
+
+        StartJiggle();
+    }
+
+    void StartJiggle()
+    {
+        Sequence seq = DOTween.Sequence().SetLoops(-1, LoopType.Yoyo);
+
+        seq.Append(transform.DOScale(originalScale + new Vector3(scaleAmount, -scaleAmount, 0), duration).SetEase(Ease.InOutSine));
+        seq.Join(transform.DOLocalMove(originalPos + new Vector3(positionAmount, positionAmount, 0), duration).SetEase(Ease.InOutSine));
+
+        seq.Append(transform.DOScale(originalScale + new Vector3(-scaleAmount, scaleAmount, 0), duration).SetEase(Ease.InOutSine));
+        seq.Join(transform.DOLocalMove(originalPos + new Vector3(-positionAmount, -positionAmount, 0), duration).SetEase(Ease.InOutSine));
+    }
+}
+</file>
+
+<file path="Assets/Scripts/LightFlicker.cs">
+using UnityEngine;
+using UnityEngine.Rendering.Universal;
+
+[RequireComponent(typeof(Light2D))]
+public class LightFlicker : MonoBehaviour
+{
+    [Header("Intensidade")]
+    public float baseIntensity = 1f;
+    public float intensityVariation = 0.2f;
+
+    [Header("Raio da luz")]
+    public float baseOuterRadius = 5f;
+    public float radiusVariation = 0.2f;
+
+    [Header("Velocidade da oscilação")]
+    public float flickerSpeed = 0.1f;
+
+    private Light2D light2D;
+    private float flickerTimer;
+
+    void Start()
+    {
+        light2D = GetComponent<Light2D>();
+    }
+
+    void Update()
+    {
+        flickerTimer += Time.deltaTime;
+        if (flickerTimer >= flickerSpeed)
+        {
+            flickerTimer = 0f;
+
+            float newIntensity = baseIntensity + Random.Range(-intensityVariation, intensityVariation);
+            float newOuterRadius = baseOuterRadius + Random.Range(-radiusVariation, radiusVariation);
+
+            light2D.intensity = Mathf.Clamp(newIntensity, 0, 10);
+            light2D.pointLightOuterRadius = Mathf.Clamp(newOuterRadius, 0, 20);
+        }
+    }
+}
+</file>
+
+<file path="Assets/Scripts/PlayerController.cs">
+using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerController : MonoBehaviour
@@ -275,15 +347,13 @@ public class PlayerController : MonoBehaviour
     public float dashCooldown = 2f;
     public KeyCode dashKey = KeyCode.Space;
 
-    [Header("Dash Visual (Ghost)")]
-    public Transform spriteTransform; // Objeto visual com SpriteRenderer
-    public GameObject ghostPrefab;    // Prefab com SpriteRenderer + DashGhost.cs
-    public float ghostSpawnRate = 0.05f;
-
-    [Header("Lenha")]
+    [Header("Lançar Lenha")]
     public GameObject woodPrefab;
-    public float throwRange = 5f;
-    public float throwDuration = 0.3f;
+    public float throwForce = 10f;
+    public Transform woodSpawnPoint;
+
+    [Header("Inventário")]
+    public int lenhaNoInventario = 0;
 
     private Rigidbody2D rb;
     private Vector2 input;
@@ -298,8 +368,8 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         HandleInput();
-        HandleThrowInput();
         HandleDashInput();
+        HandleThrowInput();
     }
 
     void FixedUpdate()
@@ -314,21 +384,6 @@ public class PlayerController : MonoBehaviour
     void HandleInput()
     {
         input = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")).normalized;
-    }
-
-    void HandleThrowInput()
-    {
-        if (Input.GetMouseButtonDown(0) && woodPrefab != null)
-        {
-            Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            mouseWorldPos.z = 0f;
-
-            Vector3 direction = (mouseWorldPos - transform.position).normalized;
-            Vector3 targetPos = transform.position + direction * throwRange;
-
-            GameObject thrownWood = Instantiate(woodPrefab, transform.position, Quaternion.identity);
-            thrownWood.transform.DOMove(targetPos, throwDuration).SetEase(Ease.OutQuad);
-        }
     }
 
     void HandleDashInput()
@@ -347,39 +402,38 @@ public class PlayerController : MonoBehaviour
         Vector2 dashDir = input != Vector2.zero ? input : Vector2.up;
         rb.velocity = dashDir.normalized * dashForce;
 
-        float dashTimer = 0f;
-        float ghostTimer = 0f;
-
-        while (dashTimer < dashDuration)
-        {
-            dashTimer += Time.deltaTime;
-            ghostTimer += Time.deltaTime;
-
-            if (ghostTimer >= ghostSpawnRate)
-            {
-                ghostTimer = 0f;
-                SpawnGhost();
-            }
-
-            yield return null;
-        }
-
+        yield return new WaitForSeconds(dashDuration);
         isDashing = false;
     }
 
-    void SpawnGhost()
+    void HandleThrowInput()
     {
-        if (spriteTransform == null || ghostPrefab == null) return;
-
-        GameObject ghost = Instantiate(ghostPrefab, spriteTransform.position, spriteTransform.rotation);
-        SpriteRenderer ghostSR = ghost.GetComponent<SpriteRenderer>();
-        SpriteRenderer playerSR = spriteTransform.GetComponent<SpriteRenderer>();
-
-        if (ghostSR && playerSR)
+        if (Input.GetMouseButtonDown(0) && woodPrefab != null && lenhaNoInventario > 0)
         {
-            ghostSR.sprite = playerSR.sprite;
-            ghostSR.flipX = playerSR.flipX;
-            ghostSR.color = playerSR.color;
+            Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            mouseWorldPos.z = 0f;
+
+            Vector2 throwDirection = (mouseWorldPos - transform.position).normalized;
+            Transform spawnPoint = woodSpawnPoint != null ? woodSpawnPoint : transform;
+
+            GameObject wood = Instantiate(woodPrefab, spawnPoint.position, Quaternion.identity);
+            Rigidbody2D woodRb = wood.GetComponent<Rigidbody2D>();
+
+            if (woodRb != null)
+            {
+                woodRb.AddForce(throwDirection * throwForce, ForceMode2D.Impulse);
+            }
+
+            lenhaNoInventario--;
+        }
+    }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.CompareTag("Lenha"))
+        {
+            lenhaNoInventario++;
+            Destroy(collision.gameObject);
         }
     }
 }
