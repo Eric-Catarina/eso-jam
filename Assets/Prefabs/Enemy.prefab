@@ -161,8 +161,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   baseSpeed: 3
-  baseMaxHealth: 2
-  dano: 4
+  baseMaxHealth: 0.8
+  dano: 2
   woodDropPrefab: {fileID: 6534654697714713015, guid: e5753f5a1f1768374b65c4be67f0a896, type: 3}
   woodDropChance: 0.5
   swaySpeed: 2

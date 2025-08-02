@@ -6,9 +6,7 @@ public class EnemyTank : Enemy
     protected override void Start()
     {
         // Stats: Lento e com mais vida
-        baseSpeed *= 0.5f;
-        baseMaxHealth *= 3;
-        
+  
         // Chama o Start da classe base, que vai aplicar os modificadores de dificuldade
         base.Start();
     }

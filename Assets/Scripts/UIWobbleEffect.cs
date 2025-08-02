@@ -88,7 +88,7 @@ public class UIWobbleEffect : MonoBehaviour
         float targetY = originalPosition.y + Random.Range(-moveDistanceY, moveDistanceY);
 
         // Cria a sequência de animação
-        mainSequence = DOTween.Sequence();
+        mainSequence = DOTween.Sequence(true).SetUpdate(UpdateType.Normal, true);
         mainSequence.Append(transform.DOLocalMove(new Vector3(targetX, targetY, originalPosition.z), currentDuration)
                 .SetEase(Ease.InOutSine)) // Ease.InOutSine cria a sensação suave de "onda"
             .OnComplete(StartWobble); // Magia! Ao completar, chama a si mesma para o próximo movimento.

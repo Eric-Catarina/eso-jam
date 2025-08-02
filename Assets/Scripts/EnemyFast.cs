@@ -10,9 +10,7 @@ public class EnemyFast : Enemy
     protected override void Start()
     {
         // Stats: Rápido e com menos vida (AGORA APLICA ANTES do modificador de dificuldade)
-        baseSpeed *= 2.0f;
-        baseMaxHealth = Mathf.RoundToInt(baseMaxHealth * 0.5f);
-        
+
         // Chama o Start da classe base, que vai aplicar os modificadores de dificuldade em cima desses novos valores
         base.Start();
     }
