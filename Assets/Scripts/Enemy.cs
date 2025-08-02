@@ -66,15 +66,17 @@ public class Enemy : MonoBehaviour
 
 private void Die()
 {
+        GameManager.Instance.SpawnBlueExplosion(transform.position);
+
     if (woodDropPrefab != null)
-    {
-        // Lógica de drop atualizada para incluir o bônus do GameManager
-        float totalDropChance = woodDropChance + GameManager.Instance.bonusWoodDropChance;
-        if (Random.value < totalDropChance)
         {
-            Instantiate(woodDropPrefab, transform.position, Quaternion.identity);
+            // Lógica de drop atualizada para incluir o bônus do GameManager
+            float totalDropChance = woodDropChance + GameManager.Instance.bonusWoodDropChance;
+            if (Random.value < totalDropChance)
+            {
+                Instantiate(woodDropPrefab, transform.position, Quaternion.identity);
+            }
         }
-    }
     Destroy(gameObject);
 }
     private void OnTriggerEnter2D(Collider2D collision)

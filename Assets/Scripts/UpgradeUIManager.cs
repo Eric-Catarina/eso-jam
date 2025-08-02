@@ -15,6 +15,8 @@ public class UpgradeUIManager : MonoBehaviour
     public void ShowUpgradeOptions(List<UpgradeData> upgrades)
     {
         upgradePanel.SetActive(true);
+        GetComponent<UIJuice>().PlayAnimation();
+
 
         for (int i = 0; i < upgradeButtons.Count; i++)
         {

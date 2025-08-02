@@ -114,6 +114,8 @@ public class PlayerController : MonoBehaviour
                             // 4. Instancia o prefab na posição do inimigo e com a rotação que acabamos de calcular.
                             //    Substituímos o Quaternion.identity pela nossa targetRotation.
                             Instantiate(slashEffectPrefab, closestEnemy.position, targetRotation);
+
+
                         }
 
                         // --- FIM DA LÓGICA DE ROTAÇÃO ---

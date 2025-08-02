@@ -25,8 +25,7 @@ public class GameManager : MonoBehaviour
     public List<UpgradeData> allUpgrades;
     private List<UpgradeData> availableUpgrades;
 
-    public ParticleSystem confettiEffect; // Efeito de confete opcional
-
+    public ParticleSystem confettiEffect, orangeExplosionEffect, blueExplosionEffect;
     // Stats Globais Modificáveis
     public float bonusWoodDropChance = 0f;
 
@@ -48,7 +47,7 @@ public class GameManager : MonoBehaviour
         // Reseta a lista de upgrades disponíveis no início
         availableUpgrades = new List<UpgradeData>(allUpgrades);
     }
-    
+
 
     public void AddXp(int amount)
     {
@@ -127,6 +126,35 @@ public class GameManager : MonoBehaviour
         if (confettiEffect != null)
         {
             confettiEffect.Play();
+        }
+    }
+
+    public void SpawnOrangeExplosion(Vector3 position)
+    {
+        if (orangeExplosionEffect != null)
+        {
+            var effect = Instantiate(orangeExplosionEffect, position, Quaternion.identity);
+            // move a little in z
+            effect.transform.position += new Vector3(0, 0, -1f);
+        }
+    }
+    
+    public void SpawnOrangeExplosionOnBonfire()
+    {
+        if (bonfire != null)
+        {
+            SpawnOrangeExplosion(bonfire.transform.position);
+        }
+    }
+
+    public void SpawnBlueExplosion(Vector3 position)
+    {
+        if (blueExplosionEffect != null)
+        {
+            var effect = Instantiate(blueExplosionEffect, position, Quaternion.identity);
+            // move a little in z
+            effect.transform.position += new Vector3(0, 0, -1f);
+
         }
     }
 

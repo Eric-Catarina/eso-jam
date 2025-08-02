@@ -53,6 +53,7 @@ public class Bonfire : MonoBehaviour
             currentHealth += 10; // Por exemplo, adiciona 10 de vida à fogueira
             currentHealth = Mathf.Min(currentHealth, maxHealth); // Garante que não ultrapasse o máximo
             Debug.Log("Lenha coletada! Vida da fogueira aumentada.");
+            GameManager.Instance.SpawnOrangeExplosion(transform.position); // Efeito visual de coleta
         }
           }
 
