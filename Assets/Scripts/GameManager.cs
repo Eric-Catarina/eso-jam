@@ -18,7 +18,7 @@ public class GameManager : MonoBehaviour
     public int playerLevel = 1;
     private int currentXp = 0;
     // Custo de XP para cada nível (Nível 1 custa 1, Nível 2 custa 3, etc.)
-    public int[] xpPerLevel = { 1, 3, 5, 8, 12, 17, 23, 30, 38, 47 }; // Curva até o Nível 10
+    public int[] xpPerLevel = { 1, 3, 5, 8, 9, 9, 9, 9, 9, 20 }; // Curva até o Nível 10
 
     [Header("Upgrades")]
     [Tooltip("Lista com todos os upgrades possíveis no jogo.")]
@@ -28,6 +28,8 @@ public class GameManager : MonoBehaviour
     public ParticleSystem confettiEffect, orangeExplosionEffect, blueExplosionEffect;
     // Stats Globais Modificáveis
     public float bonusWoodDropChance = 0f;
+
+    public GameObject losePanel;
 
     private void Awake()
     {
@@ -46,6 +48,7 @@ public class GameManager : MonoBehaviour
     {
         // Reseta a lista de upgrades disponíveis no início
         availableUpgrades = new List<UpgradeData>(allUpgrades);
+        Invoke(nameof(LoseGame), 180);
     }
 
 
@@ -70,6 +73,7 @@ public class GameManager : MonoBehaviour
         playerLevel++;
         ShowConfetti();
         Debug.Log($"LEVEL UP! Novo nível: {playerLevel}");
+        AudioManager.Instance.PlaySoundEffect(5);
 
         Time.timeScale = 0f; // Pausa o jogo
 
@@ -169,5 +173,19 @@ public class GameManager : MonoBehaviour
     {
         Debug.Log("Saindo do jogo...");
         Application.Quit();
+    }
+
+    public void RestartGame()
+    {
+        Debug.Log("Reiniciando o jogo...");
+        // Aqui você pode adicionar lógica para reiniciar o jogo, como recarregar a cena atual
+        UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
+    }
+    public void LoseGame()
+    {
+        Debug.Log("Você perdeu! Exibindo painel de derrota.");
+        losePanel.SetActive(true);
+        // losePanel.GetComponent<UIJuice>().PlayAnimation();
+        // Time.timeScale = 0f; // Pausa o jogo
     }
 }

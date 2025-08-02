@@ -144,6 +144,7 @@ public class PlayerController : MonoBehaviour
     {
         if (Input.GetKeyDown(dashKey) && Time.time >= lastDashTime + dashCooldown && !isDashing)
         {
+            AudioManager.Instance.PlaySoundEffect(2); // Toca o som do dash
             StartCoroutine(Dash());
         }
     }

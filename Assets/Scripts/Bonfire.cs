@@ -87,6 +87,7 @@ public class Bonfire : MonoBehaviour
         // Condição de derrota (Game Over)
         if (currentHealth <= 0)
         {
+            GameManager.Instance.LoseGame(); // Chama o método de Game Over do GameManager
             Debug.Log("A FOGUEIRA APAGOU! GAME OVER.");
             // Lógica de Game Over...
             // Time.timeScale = 0f;
@@ -97,6 +98,8 @@ public class Bonfire : MonoBehaviour
     {
         if (other.CompareTag("Lenha"))
         {
+                    AudioManager.Instance.PlaySoundEffect(6);
+
             // Aqui você pode adicionar lógica para coletar a lenha, como:
             GameManager.Instance.AddXp(1);
             Destroy(other.gameObject); // Remove a lenha do jogo

@@ -161,7 +161,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 3
-  maxHealth: 2
+  maxHealth: 1
   dano: 4
   woodDropPrefab: {fileID: 6534654697714713015, guid: e5753f5a1f1768374b65c4be67f0a896, type: 3}
   woodDropChance: 0.5

@@ -60,6 +60,26 @@ public class AudioManager : MonoBehaviour
         bgmAudioSource.Play();
     }
 
+    public void PlaySecondBackgroundMusic(int musicIndex)
+    {
+        if (bgmAudioSource == null || backgroundMusicClips.Count == 0)
+        {
+            Debug.LogWarning("AudioManager: bgmAudioSource não atribuído ou lista de músicas vazia.");
+            return;
+        }
+
+        if (musicIndex < 0 || musicIndex >= backgroundMusicClips.Count || backgroundMusicClips[musicIndex] == null)
+        {
+            Debug.LogWarning($"AudioManager: Índice de música inválido ({musicIndex}).");
+            return;
+        }
+
+        bgmAudioSource.clip = backgroundMusicClips[musicIndex];
+        bgmAudioSource.loop = true;
+        ApplyRandomPitch(bgmAudioSource);
+        bgmAudioSource.Play();
+    }
+
     /// <summary>
     /// Para a música de fundo.
     /// </summary>

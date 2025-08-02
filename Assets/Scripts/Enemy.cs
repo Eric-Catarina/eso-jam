@@ -49,15 +49,21 @@ public abstract class Enemy : MonoBehaviour
 
         if (currentHealth <= 0)
         {
+            AudioManager.Instance.PlaySoundEffect(0);
             Die();
         }
+        else
+        {
+         AudioManager.Instance.PlaySoundEffect(2);
+        }
+            
+
     }
 
     // O método Die() agora é virtual para que o inimigo Tank possa sobrescrevê-lo
     protected virtual void Die()
     {
         GameManager.Instance.SpawnBlueExplosion(transform.position);
-
         if (fireDeath)
         {
             GameManager.Instance.SpawnOrangeExplosion(transform.position);
