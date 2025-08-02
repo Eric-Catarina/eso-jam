@@ -138,7 +138,7 @@ public class GameManager : MonoBehaviour
             effect.transform.position += new Vector3(0, 0, -1f);
         }
     }
-    
+
     public void SpawnOrangeExplosionOnBonfire()
     {
         if (bonfire != null)
@@ -158,4 +158,10 @@ public class GameManager : MonoBehaviour
         }
     }
 
+
+    public void QuitGame()
+    {
+        Debug.Log("Saindo do jogo...");
+        Application.Quit();
+    }
 }
