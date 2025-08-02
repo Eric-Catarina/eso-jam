@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: AttackSpeed
   m_EditorClassIdentifier: 
   upgradeName: Attack Speed bonus
-  description: Increase attack speed by 25%
+  description: Increase attack speed by 15%
   icon: {fileID: 21300000, guid: 1626be72de486d8ab91c5f38f03e5986, type: 3}
   type: 1
-  value: 1.25
+  value: 1.15

@@ -2,30 +2,24 @@
 using UnityEngine;
 using DG.Tweening;
 
-public class Enemy : MonoBehaviour
+public abstract class Enemy : MonoBehaviour
 {
-    [Header("Atributos")]
+    [Header("Atributos Base")]
     public float speed = 3f;
     public int maxHealth = 2;
     public int dano = 4;
-    private int currentHealth;
+    protected int currentHealth;
 
-    [Header("Alvo")]
-    private Transform target;
-
-    // --- NOVO ---
-    [Header("Drops")]
-    [Tooltip("O prefab da lenha que o inimigo pode dropar ao morrer.")]
+    [Header("Alvo e Drops")]
     public GameObject woodDropPrefab;
-    [Tooltip("A chance de dropar a lenha, de 0.0 a 1.0 (ex: 0.5 para 50%).")]
     [Range(0f, 1f)]
     public float woodDropChance = 0.5f;
-    private bool fireDeath = false;
-    // --- FIM DO NOVO ---
+    protected Transform target;
+    protected SpriteRenderer sr;
+    protected bool fireDeath = false;
 
-    private SpriteRenderer sr;
-
-    void Start()
+    // Usamos 'protected virtual' para que as classes filhas possam adicionar sua própria lógica
+    protected virtual void Start()
     {
         currentHealth = maxHealth;
         sr = GetComponent<SpriteRenderer>();
@@ -35,28 +29,23 @@ public class Enemy : MonoBehaviour
         {
             target = bonfireObject.transform;
         }
-        else
-        {
-            Debug.LogError("Inimigo não encontrou a fogueira! Verifique se o objeto Bonfire tem a tag 'Bonfire'.");
-        }
     }
 
-    void Update()
+    private void Update()
     {
         if (target != null)
         {
-            transform.position = Vector2.MoveTowards(transform.position, target.position, speed * Time.deltaTime);
+            Move();
         }
     }
+
+    // O método de movimento agora é abstrato, forçando cada filho a ter seu próprio jeito de se mover
+    protected abstract void Move();
 
     public void TakeDamage(int damage)
     {
         currentHealth -= damage;
-
-        if (sr != null)
-        {
-            sr.DOColor(Color.white, 0.1f).SetLoops(2, LoopType.Yoyo);
-        }
+        sr.DOColor(Color.white, 0.1f).SetLoops(2, LoopType.Yoyo);
 
         if (currentHealth <= 0)
         {
@@ -64,37 +53,36 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    // --- MÉTODO ATUALIZADO ---// Em Enemy.cs, método Die()
-
-private void Die()
-{
+    // O método Die() agora é virtual para que o inimigo Tank possa sobrescrevê-lo
+    protected virtual void Die()
+    {
         GameManager.Instance.SpawnBlueExplosion(transform.position);
 
-    if (woodDropPrefab != null)
+        if (fireDeath)
         {
-            // Lógica de drop atualizada para incluir o bônus do GameManager
+            GameManager.Instance.SpawnOrangeExplosion(transform.position);
+            Destroy(gameObject);
+            return;
+        }
+
+        if (woodDropPrefab != null)
+        {
             float totalDropChance = woodDropChance + GameManager.Instance.bonusWoodDropChance;
             if (Random.value < totalDropChance)
             {
-                if (fireDeath)
-                {
-                    GameManager.Instance.SpawnOrangeExplosion(transform.position);
-                    Destroy(gameObject);
-
-                    return;
-                }
                 Instantiate(woodDropPrefab, transform.position, Quaternion.identity);
             }
         }
-    Destroy(gameObject);
-}
-    private void OnTriggerEnter2D(Collider2D collision)
+        Destroy(gameObject);
+    }
+
+    protected virtual void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision.CompareTag("Bonfire"))
         {
-            collision.GetComponent<Bonfire>().ReceberDano(dano); // Exemplo de dano
+            collision.GetComponent<Bonfire>().ReceberDano(dano);
             fireDeath = true;
-            Die(); // O inimigo morre ao tocar a fogueira também
+            Die();
         }
     }
 }

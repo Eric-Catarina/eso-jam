@@ -12,9 +12,9 @@ GameObject:
   - component: {fileID: 2590581647312581314}
   - component: {fileID: -2488821030788578249}
   - component: {fileID: 8618539416509533648}
-  - component: {fileID: 4303520472230111987}
+  - component: {fileID: -7025493641847963263}
   m_Layer: 6
-  m_Name: Enemy
+  m_Name: EnemyFast
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -148,7 +148,7 @@ MonoBehaviour:
   - {x: 0.5, y: -0.5, z: 0}
   - {x: 0.5, y: 0.5, z: 0}
   - {x: -0.5, y: 0.5, z: 0}
---- !u!114 &4303520472230111987
+--- !u!114 &-7025493641847963263
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -157,7 +157,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 6093799720607877099}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 121647908ba28af48a3e77749380f49e, type: 3}
+  m_Script: {fileID: 11500000, guid: ca53c588760713707b1c47ac267d0107, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 3
@@ -165,8 +165,8 @@ MonoBehaviour:
   dano: 4
   woodDropPrefab: {fileID: 6534654697714713015, guid: e5753f5a1f1768374b65c4be67f0a896, type: 3}
   woodDropChance: 0.5
-  swaySpeed: 2
-  swayAmount: 1.5
+  spiralFrequency: 3
+  spiralMagnitude: 0.8
 --- !u!1 &7862992567267172723
 GameObject:
   m_ObjectHideFlags: 0
@@ -195,8 +195,8 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1.2, y: 1.2, z: 1.2}
-  m_ConstrainProportionsScale: 1
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 330048241542074843}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -241,7 +241,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 1
-  m_Sprite: {fileID: 21300000, guid: c8bb1cb356d1b23cd8e25dec8249e24a, type: 3}
+  m_Sprite: {fileID: 21300000, guid: fee5e39b223ab05a59071768d4a53407, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0

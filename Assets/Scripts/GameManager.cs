@@ -110,6 +110,12 @@ public class GameManager : MonoBehaviour
             case UpgradeType.PlayerMoveSpeed:
                 player.moveSpeed *= upgrade.value;
                 break;
+            case UpgradeType.PlayerAttackRange:
+                player.attackRadius *= upgrade.value; // Ex: 1.2x range
+                break;
+            case UpgradeType.PlayerDashCooldown:
+                player.dashCooldown *= (1f / upgrade.value); // Ex: 0.8x cooldown -> cooldown * (1/0.8)
+                break;
         }
 
         // Remove o upgrade da lista para não ser oferecido de novo (opcional, mas bom)

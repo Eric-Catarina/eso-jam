@@ -15,5 +15,5 @@ MonoBehaviour:
   upgradeName: Bonfire Max Health and Range
   description: Increase Bonfire max health and range by 15%
   icon: {fileID: 21300000, guid: f421b16f57ce9aff7a3db86c8ceaee6b, type: 3}
-  type: 3
+  type: 4
   value: 1.15
