@@ -917,7 +917,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
-  m_PlayOnAwake: 1
+  m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
   Loop: 0
@@ -1571,7 +1571,7 @@ MonoBehaviour:
         m_CallState: 2
       - m_Target: {fileID: 1417102302}
         m_TargetAssemblyTypeName: GameManager, Assembly-CSharp
-        m_MethodName: RestartGame
+        m_MethodName: QuitGame
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -1910,8 +1910,8 @@ MonoBehaviour:
   commonEnemyPrefab: {fileID: 6093799720607877099, guid: 8e2582b14ae2c5a2a875ad2aa6c13186, type: 3}
   fastEnemyPrefab: {fileID: 6093799720607877099, guid: 89915c7626f5239c7a84743aefd8ab8f, type: 3}
   tankEnemyPrefab: {fileID: 6093799720607877099, guid: 685db4c98d377804eaa6be41a39cbb29, type: 3}
-  spawnRate: 1
-  spawnRadius: 25
+  baseSpawnRate: 0.5
+  spawnRadius: 30
   fastEnemyChance: 0.334
   tankEnemyChance: 0.16
 --- !u!1 &551480012
@@ -2110,22 +2110,10 @@ MonoBehaviour:
   OnReverseComplete:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 537545153}
-        m_TargetAssemblyTypeName: EnemySpawner, Assembly-CSharp
-        m_MethodName: StartSpawning
+      - m_Target: {fileID: 1417102302}
+        m_TargetAssemblyTypeName: GameManager, Assembly-CSharp
+        m_MethodName: StartGame
         m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 1282890665}
-        m_TargetAssemblyTypeName: AudioManager, Assembly-CSharp
-        m_MethodName: PlayBackgroundMusic
-        m_Mode: 3
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -2452,7 +2440,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -187}
+  m_AnchoredPosition: {x: 0, y: -192}
   m_SizeDelta: {x: 400, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &703334886
@@ -4631,6 +4619,126 @@ Transform:
   - {fileID: 214186745}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1307823081
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1307823083}
+  - component: {fileID: 1307823082}
+  m_Layer: 0
+  m_Name: DifficultyManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1307823082
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1307823081}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07b67f65f2aa50b95bfbd20fcca0ea97, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  totalMatchTime: 120
+  spawnRateCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 3
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  enemySpeedCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1.5
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  enemyHealthCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 2.5
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  SpawnRateMultiplier: 0
+  EnemySpeedMultiplier: 0
+  EnemyHealthMultiplier: 0
+--- !u!4 &1307823083
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1307823081}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1006.5311, y: 487.15872, z: 1.0126255}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1313020181
 GameObject:
   m_ObjectHideFlags: 0
@@ -4876,7 +4984,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
-  m_PlayOnAwake: 1
+  m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
   Loop: 0
@@ -5142,6 +5250,10 @@ MonoBehaviour:
   player: {fileID: 1202137323}
   bonfire: {fileID: 537545150}
   upgradeUI: {fileID: 551480014}
+  enemySpawner: {fileID: 537545153}
+  losePanel: {fileID: 1894352363}
+  winPanel: {fileID: 1894352363}
+  startPanel: {fileID: 0}
   playerLevel: 1
   xpPerLevel: 010000000300000005000000080000000c00000011000000170000001e000000260000002f000000
   allUpgrades:
@@ -5156,7 +5268,6 @@ MonoBehaviour:
   orangeExplosionEffect: {fileID: 2220253567532624046, guid: e066832f1a02fca2c94ca5c2a7bbb18a, type: 3}
   blueExplosionEffect: {fileID: 6289091192326652535, guid: d841253b3dbd6fb7889df7b48477fc32, type: 3}
   bonusWoodDropChance: 0
-  losePanel: {fileID: 1894352363}
 --- !u!4 &1417102303
 Transform:
   m_ObjectHideFlags: 0
@@ -5657,33 +5768,11 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1202137322}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1735636642 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 2377553826573258356, guid: 2b06bc632fd67b0598f3b18c05037d7f, type: 3}
-  m_PrefabInstance: {fileID: 1890397775}
-  m_PrefabAsset: {fileID: 0}
 --- !u!224 &1735636643 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 8126757527820338021, guid: 2b06bc632fd67b0598f3b18c05037d7f, type: 3}
   m_PrefabInstance: {fileID: 1890397775}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1735636646
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1735636642}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9e694dea41c4190a4b0772fe3c33148c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  moveDistanceX: 5
-  moveDistanceY: 15
-  baseDuration: 1.5
-  randomness: 0.5
-  playOnAwake: 1
 --- !u!114 &1772308466 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6844261283005425725, guid: 6a46983b1003547a3bae31a52a23e877, type: 3}
@@ -6451,9 +6540,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4738248331506895939, guid: 2b06bc632fd67b0598f3b18c05037d7f, type: 3}
       insertIndex: -1
       addedObject: {fileID: 561079276}
-    - targetCorrespondingSourceObject: {fileID: 2377553826573258356, guid: 2b06bc632fd67b0598f3b18c05037d7f, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1735636646}
     - targetCorrespondingSourceObject: {fileID: 8534735553817371722, guid: 2b06bc632fd67b0598f3b18c05037d7f, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1011313082}
@@ -7035,7 +7121,6 @@ SceneRoots:
   - {fileID: 1788996113}
   - {fileID: 1854696177}
   - {fileID: 537545149}
-  - {fileID: 1417102303}
   - {fileID: 91003896}
   - {fileID: 1820032352}
   - {fileID: 492940535}
@@ -7043,3 +7128,5 @@ SceneRoots:
   - {fileID: 1202137322}
   - {fileID: 1282890666}
   - {fileID: 2039753467}
+  - {fileID: 1307823083}
+  - {fileID: 1417102303}

@@ -5,18 +5,18 @@ public class EnemyTank : Enemy
 {
     protected override void Start()
     {
-        base.Start();
         // Stats: Lento e com mais vida
-        speed *= 0.5f; // Metade da velocidade base
-        maxHealth *= 3;
-        currentHealth = maxHealth;
+        baseSpeed *= 0.5f;
+        baseMaxHealth *= 3;
+        
+        // Chama o Start da classe base, que vai aplicar os modificadores de dificuldade
+        base.Start();
     }
 
     // Movimento simples e direto
     protected override void Move()
     {
-        transform.position = Vector2.MoveTowards(transform.position, target.position, speed * Time.deltaTime);
-    }
+        transform.position = Vector2.MoveTowards(transform.position, target.position, finalSpeed * Time.deltaTime);    }
 
     // Sobrescreve o método Die para dropar 3 lenhas
     protected override void Die()

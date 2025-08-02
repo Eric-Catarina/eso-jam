@@ -98,7 +98,7 @@ public class Bonfire : MonoBehaviour
     {
         if (other.CompareTag("Lenha"))
         {
-                    AudioManager.Instance.PlaySoundEffect(6);
+            AudioManager.Instance.PlaySoundEffect(6);
 
             // Aqui você pode adicionar lógica para coletar a lenha, como:
             GameManager.Instance.AddXp(1);

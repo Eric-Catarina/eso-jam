@@ -28,6 +28,5 @@ public class EnemyCommon : Enemy
         // Combina a direção principal com o balanço
         Vector2 finalDirection = (directionToTarget + perpendicular * sway * swayAmount).normalized;
         
-        transform.Translate(finalDirection * speed * Time.deltaTime, Space.World);
-    }
+        transform.Translate(finalDirection * finalSpeed * Time.deltaTime, Space.World);    }
 }

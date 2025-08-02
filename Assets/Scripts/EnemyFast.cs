@@ -9,13 +9,13 @@ public class EnemyFast : Enemy
 
     protected override void Start()
     {
+        // Stats: Rápido e com menos vida (AGORA APLICA ANTES do modificador de dificuldade)
+        baseSpeed *= 2.0f;
+        baseMaxHealth = Mathf.RoundToInt(baseMaxHealth * 0.5f);
+        
+        // Chama o Start da classe base, que vai aplicar os modificadores de dificuldade em cima desses novos valores
         base.Start();
-        // Stats: Rápido e com menos vida
-        speed *= 2.0f;  // 2x a velocidade base
-        maxHealth = (int)(maxHealth * 0.5f);
-        currentHealth = maxHealth;
     }
-
     protected override void Move()
     {
         Vector2 directionToTarget = (target.position - transform.position).normalized;
@@ -26,6 +26,5 @@ public class EnemyFast : Enemy
         
         Vector2 finalDirection = (directionToTarget + perpendicular * spiralOffset).normalized;
         
-        transform.Translate(finalDirection * speed * Time.deltaTime, Space.World);
-    }
+        transform.Translate(finalDirection * finalSpeed * Time.deltaTime, Space.World);    }
 }

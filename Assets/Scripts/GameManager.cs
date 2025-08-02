@@ -1,24 +1,32 @@
 // Assets/Scripts/GameManager.cs
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.VFX;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
+    private bool isGameRunning = false;
     public static GameManager Instance { get; private set; }
 
     [Header("Referências")]
     public PlayerController player;
     public Bonfire bonfire;
-    public UpgradeUIManager upgradeUI; // Vamos criar este script a seguir
+    public UpgradeUIManager upgradeUI;
+    public EnemySpawner enemySpawner; // Adicione a referência ao spawner
+
+    [Header("UI")]
+    public GameObject losePanel;
+    public GameObject winPanel; // Opcional: Um painel de vitória
+    public GameObject startPanel; // Opcional: Um painel com um botão "Iniciar"
 
     [Header("Controle de Nível")]
     public int playerLevel = 1;
     private int currentXp = 0;
     // Custo de XP para cada nível (Nível 1 custa 1, Nível 2 custa 3, etc.)
-    public int[] xpPerLevel = { 1, 3, 5, 8, 9, 9, 9, 9, 9, 20 }; // Curva até o Nível 10
+    public int[] xpPerLevel = { 1, 2, 3, 4, 5, 7, 9, 30, 38, 47 }; 
 
     [Header("Upgrades")]
     [Tooltip("Lista com todos os upgrades possíveis no jogo.")]
@@ -29,14 +37,12 @@ public class GameManager : MonoBehaviour
     // Stats Globais Modificáveis
     public float bonusWoodDropChance = 0f;
 
-    public GameObject losePanel;
-
     private void Awake()
     {
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject);
+            // DontDestroyOnLoad(gameObject); // Pode ser útil, mas cuidado ao reiniciar a cena
         }
         else
         {
@@ -46,11 +52,49 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
-        // Reseta a lista de upgrades disponíveis no início
-        availableUpgrades = new List<UpgradeData>(allUpgrades);
-        Invoke(nameof(LoseGame), 180);
+        // Garante que tudo esteja pausado ou inativo no começo
+        Time.timeScale = 1f; // Reseta a escala de tempo
+        losePanel.SetActive(false);
+        if (winPanel != null) winPanel.SetActive(false);
+        
+        // Se tiver um painel inicial, mostre-o. Senão, inicie o jogo direto.
+        if (startPanel != null)
+        {
+            startPanel.SetActive(true);
+            Time.timeScale = 0f; // Pausa o jogo até o jogador clicar em "Start"
+        }
+        else
+        {
+            StartGame();
+        }
     }
 
+    // Este método será chamado pelo botão "Start" da sua UI
+    public void StartGame()
+    {
+        if (isGameRunning) return; // Evita iniciar o jogo mais de uma vez
+        isGameRunning = true;
+        Time.timeScale = 1f;
+        AudioManager.Instance.PlayBackgroundMusic(1); // Toca a música do menu ou inicial
+        // Inicia os sistemas do jogo
+        availableUpgrades = new List<UpgradeData>(allUpgrades);
+        
+        if (enemySpawner == null)
+        {
+            Debug.LogError("Referência ao EnemySpawner não foi definida no GameManager!");
+            return;
+        }
+        enemySpawner.StartSpawning();
+        
+        // Inicia o timer de vitória (2 minutos)
+        StartCoroutine(VictoryTimer());
+    }
+
+    private IEnumerator VictoryTimer()
+    {
+        yield return new WaitForSeconds(120); // Espera 2 minutos
+        WinGame();
+    }
 
     public void AddXp(int amount)
     {
@@ -168,24 +212,30 @@ public class GameManager : MonoBehaviour
         }
     }
 
-
-    public void QuitGame()
+    public void WinGame()
     {
-        Debug.Log("Saindo do jogo...");
-        Application.Quit();
+        Debug.Log("Você sobreviveu! Vitória!");
+        if (winPanel != null) winPanel.SetActive(true);
+        Time.timeScale = 0f;
+        DifficultyManager.Instance.StopTimer();
     }
 
-    public void RestartGame()
-    {
-        Debug.Log("Reiniciando o jogo...");
-        // Aqui você pode adicionar lógica para reiniciar o jogo, como recarregar a cena atual
-        UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
-    }
     public void LoseGame()
     {
         Debug.Log("Você perdeu! Exibindo painel de derrota.");
         losePanel.SetActive(true);
-        // losePanel.GetComponent<UIJuice>().PlayAnimation();
-        // Time.timeScale = 0f; // Pausa o jogo
+        Time.timeScale = 0f;
+        DifficultyManager.Instance.StopTimer();
+    }
+
+    public void RestartGame()
+    {
+        Time.timeScale = 1f; // Garante que o tempo volte ao normal antes de recarregar
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+    public void QuitGame()
+    {
+        Application.Quit();
     }
 }
