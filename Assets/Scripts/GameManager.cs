@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.VFX;
 
 public class GameManager : MonoBehaviour
 {
@@ -23,6 +24,8 @@ public class GameManager : MonoBehaviour
     [Tooltip("Lista com todos os upgrades possíveis no jogo.")]
     public List<UpgradeData> allUpgrades;
     private List<UpgradeData> availableUpgrades;
+
+    public ParticleSystem confettiEffect; // Efeito de confete opcional
 
     // Stats Globais Modificáveis
     public float bonusWoodDropChance = 0f;
@@ -45,6 +48,13 @@ public class GameManager : MonoBehaviour
         // Reseta a lista de upgrades disponíveis no início
         availableUpgrades = new List<UpgradeData>(allUpgrades);
     }
+    // private void Update()
+    // {
+    //     if (Time.timeScale < 0.01f)
+    //     {
+    //         confettiEffect.Simulate(Time.unscaledDeltaTime, true, false);
+    //     }
+    // }
 
     public void AddXp(int amount)
     {
@@ -65,7 +75,7 @@ public class GameManager : MonoBehaviour
         // Subtrai o custo do nível atual
         currentXp -= xpPerLevel[playerLevel - 1];
         playerLevel++;
-
+        ShowConfetti();
         Debug.Log($"LEVEL UP! Novo nível: {playerLevel}");
 
         Time.timeScale = 0f; // Pausa o jogo
@@ -116,6 +126,14 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 1f;
         upgradeUI.HidePanel();
 
+    }
+
+    public void ShowConfetti()
+    {
+        if (confettiEffect != null)
+        {
+            confettiEffect.Play();
+        }
     }
 
 }
