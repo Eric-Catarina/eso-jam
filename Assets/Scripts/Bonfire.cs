@@ -91,7 +91,6 @@ public class Bonfire : MonoBehaviour
             GameManager.Instance.LoseGame(); // Chama o método de Game Over do GameManager
             Debug.Log("A FOGUEIRA APAGOU! GAME OVER.");
             // Lógica de Game Over...
-            // Time.timeScale = 0f;
         }
     }
 
@@ -106,7 +105,6 @@ public class Bonfire : MonoBehaviour
             Destroy(other.gameObject); // Remove a lenha do jogo
             currentHealth += logHealingAmount; // Por exemplo, adiciona 10 de vida à fogueira
             currentHealth = Mathf.Min(currentHealth, maxHealth); // Garante que não ultrapasse o máximo
-            Debug.Log("Lenha coletada! Vida da fogueira aumentada.");
             GameManager.Instance.SpawnOrangeExplosion(transform.position); // Efeito visual de coleta
         }
           
@@ -165,7 +163,7 @@ public class Bonfire : MonoBehaviour
         GameManager.Instance.SpawnOrangeExplosionOnBonfire(); // Feedback visual
     }
 
-    public void ReceberDano(int dano)
+    public void ReceberDano(float dano)
     {
         currentHealth -= dano;
     }

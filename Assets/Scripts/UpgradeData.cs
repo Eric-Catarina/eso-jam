@@ -12,6 +12,8 @@ public enum UpgradeType
     HealBonfire,
     PlayerMoveSpeed,
     PlayerDashCooldown,
+    PlayerAttackDamage,
+    WoodHealingAmount,
 }
 
 [CreateAssetMenu(fileName = "New Upgrade", menuName = "Game/Upgrade Data")]

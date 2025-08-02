@@ -30,7 +30,7 @@ public class PlayerController : MonoBehaviour
     [Header("Ataque Melee Automático")]
     public float attackRadius = 2.5f;   // O alcance do ataque
     public float attackCooldown = 1f;   // Ataca a cada 1 segundo
-    public int attackDamage = 1;        // Dano do ataque
+    public float  attackDamage = 1;        // Dano do ataque
     public LayerMask enemyLayer;        // Defina no Inspector qual camada é a dos inimigos
     public GameObject slashEffectPrefab;        // Efeito visual opcional para o ataque
     private float lastAttackTime = -Mathf.Infinity; // Timer para o ataque

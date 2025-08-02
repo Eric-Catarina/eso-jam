@@ -6,16 +6,16 @@ public abstract class Enemy : MonoBehaviour
 {
     [Header("Atributos Base (antes da dificuldade)")]
     public float baseSpeed = 3f;
-    public int baseMaxHealth = 2;
-    public int dano = 4;
-    protected int currentHealth;
+    public float baseMaxHealth = 2;
+    public float dano = 4;
+    protected float currentHealth;
 
     [Header("Alvo e Drops")]
     public GameObject woodDropPrefab;
     [Range(0f, 1f)]
     public float woodDropChance = 0.5f;
 
-    // Variáveis internas
+    // Variáveis floaternas
     protected float finalSpeed;
     protected Transform target;
     protected SpriteRenderer sr;
@@ -57,7 +57,7 @@ public abstract class Enemy : MonoBehaviour
 
     protected abstract void Move();
 
-    public void TakeDamage(int damage)
+    public void TakeDamage(float damage)
     {
         AudioManager.Instance.PlaySoundEffect(2);
 

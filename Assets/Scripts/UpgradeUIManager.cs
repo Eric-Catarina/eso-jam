@@ -31,8 +31,8 @@ public class UpgradeUIManager : MonoBehaviour
                 // Limpa listeners antigos e adiciona o novo
                 upgradeButtons[i].onClick.RemoveAllListeners();
                 var selectedUpgrade = upgrades[i]; // Variável local para evitar problemas de closure
-                upgradeButtons[i].onClick.AddListener(() => GameManager.Instance.ApplyUpgrade(selectedUpgrade));
                 upgradeButtons[i].onClick.AddListener(() => HidePanel());
+                upgradeButtons[i].onClick.AddListener(() => GameManager.Instance.ApplyUpgrade(selectedUpgrade));
 
             }
             else
@@ -46,5 +46,13 @@ public class UpgradeUIManager : MonoBehaviour
     public void HidePanel()
     {
         GetComponent<UIJuice>().PlayReverseAnimation();
+        // disable buttons and remove listeners
+        foreach (var button in upgradeButtons)
+        {
+            button.gameObject.SetActive(false);
+            button.onClick.RemoveAllListeners();
+        }
+
+
     }
 }

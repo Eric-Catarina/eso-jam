@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 959046d4584e0fe6fb63d69eb2b034e6, type: 3}
-  m_Name: MoveSpeed
+  m_Name: AttackDamage
   m_EditorClassIdentifier: 
-  upgradeName: Move Speed Bonus
-  description: Increase Movement Speed by 30%
-  icon: {fileID: 21300000, guid: 4a916a1ae1883171299f50e55e3315f0, type: 3}
-  type: 6
-  value: 1.3
+  upgradeName: Attack Range Bonus
+  description: Increase Attack Damage by 25%
+  icon: {fileID: 21300000, guid: 1626be72de486d8ab91c5f38f03e5986, type: 3}
+  type: 8
+  value: 1.25

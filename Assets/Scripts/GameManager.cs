@@ -155,6 +155,12 @@ public class GameManager : MonoBehaviour
             case UpgradeType.PlayerDashCooldown:
                 player.dashCooldown *= (1f / upgrade.value); // Ex: 0.8x cooldown -> cooldown * (1/0.8)
                 break;
+            case UpgradeType.PlayerAttackDamage:
+                player.attackDamage *= upgrade.value; // Ex: 1.5x damage
+                break;
+            case UpgradeType.WoodHealingAmount:
+                bonfire.logHealingAmount += upgrade.value; // Aumenta a quantidade de vida que a fogueira recebe ao coletar lenha
+                break;
         }
 
         // Remove o upgrade da lista para não ser oferecido de novo (opcional, mas bom)
