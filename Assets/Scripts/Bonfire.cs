@@ -56,8 +56,17 @@ public class Bonfire : MonoBehaviour
         }
     }
 
-    public void ReceberDano(int danoAFogueira)
-    {
-        throw new NotImplementedException();
-    }
+// Em Bonfire.cs
+
+// ... seu código existente ...
+
+// Implemente o método que estava faltando
+public void ReceberDano(int dano)
+{
+    energiaAtual -= dano;
+    // Toca um som de dano na fogueira
+    // Adiciona um efeito de partículas de fumaça, etc.
+}
+
+// O resto do seu código de Bonfire.cs continua igual...
 }

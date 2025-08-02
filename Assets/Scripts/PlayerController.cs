@@ -35,9 +35,24 @@ public class PlayerController : MonoBehaviour
     public GameObject slashEffectPrefab;        // Efeito visual opcional para o ataque
     private float lastAttackTime = -Mathf.Infinity; // Timer para o ataque
 
+    [Header("Lançar Lenha")]
+    public float throwDuration = 0.7f; // Duração do voo da lenha
+    private LineRenderer aimLine;
+    private Transform bonfireTransform;
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+
+        // Pega a referência do LineRenderer e o desativa
+        aimLine = GetComponent<LineRenderer>();
+        aimLine.enabled = false;
+
+        // Encontra a fogueira na cena para saber o alvo do arremesso
+        GameObject bonfireObj = GameObject.FindGameObjectWithTag("Bonfire");
+        if (bonfireObj != null)
+        {
+            bonfireTransform = bonfireObj.transform;
+        }
     }
 
     void Update()
@@ -45,7 +60,7 @@ public class PlayerController : MonoBehaviour
         HandleInput();
         HandleDashInput();
         HandleThrowInput();
-
+        HandleAimingAndThrowing(); // Substitui o antigo HandleThrowInput
         HandleMeleeAttack();
     }
 
@@ -59,55 +74,55 @@ public class PlayerController : MonoBehaviour
     }
 
     // NOVO: Lógica do ataque automático
-   void HandleMeleeAttack()
-{
-    // A lógica para verificar o cooldown permanece a mesma
-    if (Time.time >= lastAttackTime + attackCooldown)
+    void HandleMeleeAttack()
     {
-        Collider2D[] enemiesInRange = Physics2D.OverlapCircleAll(transform.position, attackRadius, enemyLayer);
-
-        if (enemiesInRange.Length > 0)
+        // A lógica para verificar o cooldown permanece a mesma
+        if (Time.time >= lastAttackTime + attackCooldown)
         {
-            Transform closestEnemy = enemiesInRange
-                .OrderBy(enemy => Vector2.Distance(transform.position, enemy.transform.position))
-                .FirstOrDefault()?.transform;
+            Collider2D[] enemiesInRange = Physics2D.OverlapCircleAll(transform.position, attackRadius, enemyLayer);
 
-            if (closestEnemy != null)
+            if (enemiesInRange.Length > 0)
             {
-                lastAttackTime = Time.time;
-                Enemy enemyScript = closestEnemy.GetComponent<Enemy>();
+                Transform closestEnemy = enemiesInRange
+                    .OrderBy(enemy => Vector2.Distance(transform.position, enemy.transform.position))
+                    .FirstOrDefault()?.transform;
 
-                if (enemyScript != null)
+                if (closestEnemy != null)
                 {
-                    enemyScript.TakeDamage(attackDamage);
+                    lastAttackTime = Time.time;
+                    Enemy enemyScript = closestEnemy.GetComponent<Enemy>();
 
-                    // --- INÍCIO DA LÓGICA DE ROTAÇÃO ---
-
-                    if (slashEffectPrefab != null)
+                    if (enemyScript != null)
                     {
-                        // 1. Calcula o vetor de direção do jogador para o inimigo.
-                        //    Isso nos dá a "seta" que aponta para o alvo.
-                        Vector2 directionToEnemy = (closestEnemy.position - transform.position).normalized;
+                        enemyScript.TakeDamage(attackDamage);
 
-                        // 2. Converte essa direção em um ângulo em graus.
-                        //    Mathf.Atan2 é perfeito para isso, e Rad2Deg converte de radianos para graus.
-                        float angle = Mathf.Atan2(directionToEnemy.y, directionToEnemy.x) * Mathf.Rad2Deg;
+                        // --- INÍCIO DA LÓGICA DE ROTAÇÃO ---
 
-                        // 3. Cria a rotação final (Quaternion) que será usada na instanciação.
-                        //    A rotação acontece no eixo Z em um jogo 2D.
-                        Quaternion targetRotation = Quaternion.Euler(0f, 0f, angle);
+                        if (slashEffectPrefab != null)
+                        {
+                            // 1. Calcula o vetor de direção do jogador para o inimigo.
+                            //    Isso nos dá a "seta" que aponta para o alvo.
+                            Vector2 directionToEnemy = (closestEnemy.position - transform.position).normalized;
 
-                        // 4. Instancia o prefab na posição do inimigo e com a rotação que acabamos de calcular.
-                        //    Substituímos o Quaternion.identity pela nossa targetRotation.
-                        Instantiate(slashEffectPrefab, closestEnemy.position, targetRotation);
+                            // 2. Converte essa direção em um ângulo em graus.
+                            //    Mathf.Atan2 é perfeito para isso, e Rad2Deg converte de radianos para graus.
+                            float angle = Mathf.Atan2(directionToEnemy.y, directionToEnemy.x) * Mathf.Rad2Deg;
+
+                            // 3. Cria a rotação final (Quaternion) que será usada na instanciação.
+                            //    A rotação acontece no eixo Z em um jogo 2D.
+                            Quaternion targetRotation = Quaternion.Euler(0f, 0f, angle);
+
+                            // 4. Instancia o prefab na posição do inimigo e com a rotação que acabamos de calcular.
+                            //    Substituímos o Quaternion.identity pela nossa targetRotation.
+                            Instantiate(slashEffectPrefab, closestEnemy.position, targetRotation);
+                        }
+
+                        // --- FIM DA LÓGICA DE ROTAÇÃO ---
                     }
-                    
-                    // --- FIM DA LÓGICA DE ROTAÇÃO ---
                 }
             }
         }
     }
-}
 
     // ... Seus outros métodos (HandleInput, Dash, etc.) ...
     void HandleInput()
@@ -151,19 +166,81 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void OnTriggerEnter2D(Collider2D collision)
-    {
-        if (collision.CompareTag("Lenha"))
-        {
-            lenhaNoInventario++;
-            Destroy(collision.gameObject);
-        }
-    }
+// Dentro de PlayerController.cs
 
+private void OnTriggerEnter2D(Collider2D collision)
+{
+    if (collision.CompareTag("Lenha"))
+    {
+        // Pega o script da lenha que colidiu
+        ThrownWood woodScript = collision.GetComponent<ThrownWood>();
+        
+        // Se a lenha não existir ou não for coletável, ignora.
+        // O "woodScript == null" é para lenhas que podem estar no chão sem esse script.
+        if (woodScript != null && !woodScript.isCollectible)
+        {
+            return; 
+        }
+
+        // Se passar, a lenha é coletável.
+        lenhaNoInventario++;
+        Destroy(collision.gameObject);
+    }
+}
     // NOVO: Visualizar o raio de ataque no Editor da Unity
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackRadius);
+    }
+
+    void HandleAimingAndThrowing()
+    {
+        // Se não tiver lenha, não faz nada
+        if (lenhaNoInventario <= 0 || bonfireTransform == null)
+        {
+            aimLine.enabled = false;
+            return;
+        }
+
+        // Pega a posição do mouse no mundo do jogo
+        Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        mouseWorldPos.z = 0f;
+
+        // Ponto de onde a lenha/mira sai
+        Vector3 spawnPos = woodSpawnPoint != null ? woodSpawnPoint.position : transform.position;
+
+        // Enquanto o botão do mouse estiver pressionado, mostra a mira
+        if (Input.GetMouseButton(0))
+        {
+            aimLine.enabled = true;
+            // A mira aponta do jogador na direção do mouse
+            aimLine.SetPosition(0, spawnPos);
+            aimLine.SetPosition(1, mouseWorldPos);
+        }
+
+        // Ao soltar o botão, arremessa a lenha
+        if (Input.GetMouseButtonUp(0))
+        {
+            aimLine.enabled = false; // Esconde a mira
+
+            lenhaNoInventario--;
+            // AudioManager.Instance.PlaySoundEffect(SEU_INDICE_DE_ARREMESSO_AQUI);
+
+            GameObject wood = Instantiate(woodPrefab, spawnPos, Quaternion.identity);
+            ThrownWood thrownWoodScript = wood.GetComponent<ThrownWood>();
+
+            if (thrownWoodScript != null)
+            {
+                // Inicia a animação de arremesso em direção à fogueira
+                thrownWoodScript.Launch(bonfireTransform.position, throwDuration);
+            }
+        }
+
+        // Se o jogador soltar o clique sem querer, esconde a linha
+        if (!Input.GetMouseButton(0) && aimLine.enabled)
+        {
+            aimLine.enabled = false;
+        }
     }
 }

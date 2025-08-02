@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 1976928158952349004}
   - component: {fileID: 1153456861473018485}
   - component: {fileID: 1978437777824076978}
+  - component: {fileID: 8369632632139069797}
   m_Layer: 0
   m_Name: Lenha
   m_TagString: Lenha
@@ -74,7 +75,7 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 1
   m_Sprite: {fileID: 21300000, guid: bb098bf37487b7961b722311789e7156, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
@@ -148,3 +149,18 @@ CircleCollider2D:
   m_Offset: {x: 0, y: 0}
   serializedVersion: 2
   m_Radius: 0.85333335
+--- !u!114 &8369632632139069797
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6534654697714713015}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6c3c5ae3ed967fee2bc85b1ce157ab79, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  arcHeight: 2
+  spinSpeed: 720
+  isCollectible: 0
