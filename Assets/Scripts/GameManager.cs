@@ -99,7 +99,7 @@ public class GameManager : MonoBehaviour
                 player.attackCooldown *= (1f / upgrade.value); // Ex: 1.25x speed -> cooldown * (1/1.25)
                 break;
             case UpgradeType.BonfireBurnRate:
-                bonfire.taxaDePerdaDeEnergia *= upgrade.value; // Ex: 0.9x burn rate
+                bonfire.baseBurnRate *= upgrade.value; // Ex: 0.9x burn rate
                 break;
             case UpgradeType.BonfireMaxHealth:
                 bonfire.IncreaseMaxHealth(upgrade.value);

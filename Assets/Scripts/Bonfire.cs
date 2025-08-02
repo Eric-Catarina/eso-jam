@@ -1,79 +1,182 @@
-// Dentro de public class Bonfire : MonoBehaviour
-using System;
+// Assets/Scripts/Bonfire.cs
 using UnityEngine;
+using UnityEngine.UI; // Necessário para controlar o Slider
+
 public class Bonfire : MonoBehaviour
 {
-    // Substitua "energia" por um sistema de vida atual/máxima
+    [Header("Health & Burning")]
+    [Tooltip("Vida máxima atual da fogueira.")]
     public float maxHealth = 100f;
+    [Tooltip("Vida atual da fogueira.")]
     public float currentHealth;
-    public float taxaDePerdaDeEnergia = 0.5f; // Agora é um stat público
-    public LightFlicker luzDaFogueira; // Arraste o objeto da luz da fogueira aqui no Inspector
+
+    [Tooltip("A taxa de queima base quando a fogueira está com vida baixa.")]
+    public float baseBurnRate = 0.5f; // Perda de energia por segundo
+    [Tooltip("Multiplicador da taxa de queima quando a fogueira está com vida máxima.")]
+    public float maxHealthBurnMultiplier = 2.5f; // A 100% de vida, queima 2.5x mais rápido
+
+    // Curva para um controle suave da taxa de queima
+    [Tooltip("Controla como a taxa de queima aumenta com a vida. X=0 (0% vida), Y=1 (taxa base). X=1 (100% vida), Y=2.5 (taxa máxima).")]
+    public AnimationCurve burnRateCurve = AnimationCurve.EaseInOut(0, 1, 1, 10f);
+
+    [Header("Referências de UI e VFX")]
+    [Tooltip("O Slider da UI que representa a vida da fogueira.")]
+    public Slider healthSlider;
+    [Tooltip("O sistema de partículas principal da fogueira.")]
+    public ParticleSystem fireParticleSystem;
+    [Tooltip("O componente de luz da fogueira.")]
+    public LightFlicker bonfireLight;
+
+    // Variáveis para guardar os valores originais das partículas
+    private float initialParticleGravity;
+    private float initialParticleStartSize;
+    private float initialParticleStartSpeed;
 
     void Start()
     {
         currentHealth = maxHealth;
-        // Adicione uma verificação para a luz, se ela for essencial
-        if (luzDaFogueira == null)
+
+        // Validações iniciais
+        if (bonfireLight == null)
         {
-            Debug.LogError("A referência para LightFlicker não foi definida no Bonfire!");
+            Debug.LogError("Referência para LightFlicker não definida no Bonfire!");
         }
+        if (fireParticleSystem == null)
+        {
+            Debug.LogError("Referência para ParticleSystem não definida no Bonfire!");
+        }
+        else
+        {
+            // Guarda os valores iniciais do sistema de partículas para referência
+            var mainModule = fireParticleSystem.main;
+            initialParticleGravity = mainModule.gravityModifier.constant;
+            initialParticleStartSize = mainModule.startSize.constant;
+            initialParticleStartSpeed = mainModule.startSpeed.constant;
+        }
+
+        if (healthSlider == null)
+        {
+            Debug.LogError("Referência para o Health Slider não definida no Bonfire!");
+        }
+
+        // Configura o slider com os valores iniciais
+        UpdateHealthSlider();
     }
 
     void Update()
     {
-        currentHealth -= taxaDePerdaDeEnergia * Time.deltaTime;
+        // Calcula a porcentagem de vida atual (0.0 a 1.0)
+        float healthPercent = currentHealth / maxHealth;
 
-        if (luzDaFogueira != null)
-        {
-            // Mapeia a vida (0 a maxHealth) para a intensidade da luz
-            luzDaFogueira.baseIntensity = Mathf.Lerp(0.3f, 1.5f, currentHealth / maxHealth);
-            luzDaFogueira.baseOuterRadius = Mathf.Lerp(2f, 7f, currentHealth / maxHealth);
-        }
+        // Calcula a taxa de queima atual baseada na curva
+        float currentBurnMultiplier = burnRateCurve.Evaluate(healthPercent);
+        float currentBurnRate = baseBurnRate * currentBurnMultiplier;
 
+        // Perde vida com o tempo
+        currentHealth -= currentBurnRate * Time.deltaTime;
+
+        // Garante que a vida não fique negativa
+        currentHealth = Mathf.Max(currentHealth, 0);
+
+        // Atualiza todos os sistemas dependentes
+        UpdateFireVisuals(healthPercent);
+        UpdateHealthSlider();
 
         // Condição de derrota (Game Over)
         if (currentHealth <= 0)
         {
             Debug.Log("A FOGUEIRA APAGOU! GAME OVER.");
-            // Aqui você pode adicionar a lógica de fim de jogo, como:
-            // Time.timeScale = 0; // Pausa o jogo
-            // Mostrar uma tela de "Game Over"
+            // Lógica de Game Over...
+            // Time.timeScale = 0f;
         }
     }
 
-    // O OnTriggerEnter2D para lenha agora acontece no Player, então este pode ser simplificado ou removido
-    // Se outros objetos além da lenha podem interagir, mantenha-o. Senão, pode apagar.
-    private void OnTriggerEnter2D(Collider2D collision)
+    void OnTriggerEnter2D(Collider2D other)
     {
-        if (collision.CompareTag("Lenha"))
+        if (other.CompareTag("Lenha"))
         {
             // Aqui você pode adicionar lógica para coletar a lenha, como:
             GameManager.Instance.AddXp(1);
-            Destroy(collision.gameObject); // Remove a lenha do jogo
+            Destroy(other.gameObject); // Remove a lenha do jogo
             currentHealth += 10; // Por exemplo, adiciona 10 de vida à fogueira
             currentHealth = Mathf.Min(currentHealth, maxHealth); // Garante que não ultrapasse o máximo
             Debug.Log("Lenha coletada! Vida da fogueira aumentada.");
             GameManager.Instance.SpawnOrangeExplosion(transform.position); // Efeito visual de coleta
         }
-          }
+          
+
+    }
+
+    /// <summary>
+    /// Atualiza o slider de vida da UI.
+    /// </summary>
+    private void UpdateHealthSlider()
+    {
+        if (healthSlider == null) return;
+
+        healthSlider.maxValue = maxHealth;
+        healthSlider.value = currentHealth;
+    }
+
+    /// <summary>
+    /// Atualiza os efeitos visuais (partículas e luz) baseados na porcentagem de vida.
+    /// </summary>
+    private void UpdateFireVisuals(float healthPercent)
+    {
+        // --- Atualiza as Partículas ---
+        if (fireParticleSystem != null)
+        {
+            var main = fireParticleSystem.main;
+
+            // Quanto mais vida, menos gravidade (fogo mais alto e "selvagem")
+            main.gravityModifier = Mathf.Lerp(initialParticleGravity * 0.5f, initialParticleGravity, healthPercent);
+
+            // Quanto mais vida, maior o tamanho inicial das partículas
+            main.startSize = Mathf.Lerp(initialParticleStartSize * 0.5f, initialParticleStartSize * 1.5f, healthPercent);
+
+            // Quanto mais vida, mais rápido as partículas sobem
+            main.startSpeed = Mathf.Lerp(initialParticleStartSpeed * 0.75f, initialParticleStartSpeed * 1.25f, healthPercent);
+        }
+
+        // --- Atualiza a Luz ---
+        if (bonfireLight != null)
+        {
+            // Mapeia a vida para a intensidade e raio da luz
+            bonfireLight.baseIntensity = Mathf.Lerp(0.3f, 1.8f, healthPercent);
+            bonfireLight.baseOuterRadius = Mathf.Lerp(2f, 8f, healthPercent);
+        }
+    }
+
+    /// <summary>
+    /// Adiciona vida à fogueira (chamado ao entregar lenha, por exemplo).
+    /// </summary>
+    public void AddHealth(float amount)
+    {
+        currentHealth += amount;
+        currentHealth = Mathf.Min(currentHealth, maxHealth); // Garante que não ultrapasse o máximo
+        GameManager.Instance.SpawnOrangeExplosionOnBonfire(); // Feedback visual
+    }
 
     public void ReceberDano(int dano)
     {
         currentHealth -= dano;
     }
 
-    // --- NOVOS MÉTODOS PARA UPGRADES ---
+    // --- MÉTODOS PARA UPGRADES ---
     public void IncreaseMaxHealth(float multiplier)
     {
         float oldMaxHealth = maxHealth;
         maxHealth *= multiplier;
-        // Cura a fogueira pela quantidade que a vida máxima aumentou
-        currentHealth += maxHealth - oldMaxHealth;
-        currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth); // Garante que não ultrapasse o novo máximo
+        float healthGained = maxHealth - oldMaxHealth;
+        currentHealth += healthGained;
+        currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
+        UpdateHealthSlider();
     }
 
     public void HealToFull()
     {
         currentHealth = maxHealth;
     }
+    
+    
 }

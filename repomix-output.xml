@@ -49,11 +49,14 @@ Assets/
     DashGost.cs
     Enemy.cs
     EnemySpawner.cs
+    GameManager.cs
     JiggleEffect.cs
     LightFlicker.cs
     PlayerController.cs
     SwordSlashEffect.cs
     ThrownWood.cs
+    UpgradeData.cs
+    UpgradeUIManager.cs
 </directory_structure>
 
 <files>
@@ -463,6 +466,87 @@ public class ThrownWood : MonoBehaviour
 }
 </file>
 
+<file path="Assets/Scripts/UpgradeData.cs">
+// Assets/Scripts/UpgradeData.cs
+using UnityEngine;
+
+// Enum para identificar facilmente o tipo de upgrade
+public enum UpgradeType
+{
+    WoodDropChance,
+    PlayerAttackSpeed,
+    BonfireBurnRate,
+    BonfireMaxHealth,
+    HealBonfire,
+    PlayerMoveSpeed
+}
+
+[CreateAssetMenu(fileName = "New Upgrade", menuName = "Game/Upgrade Data")]
+public class UpgradeData : ScriptableObject
+{
+    [Header("Info")]
+    public string upgradeName;
+    [TextArea]
+    public string description;
+    public Sprite icon;
+
+    [Header("Configuração")]
+    public UpgradeType type;
+    public float value; // O valor do upgrade (ex: 1.15 para 15% de chance)
+}
+</file>
+
+<file path="Assets/Scripts/UpgradeUIManager.cs">
+// Assets/Scripts/UpgradeUIManager.cs
+using UnityEngine;
+using UnityEngine.UI;
+using System.Collections.Generic;
+using TMPro;
+
+public class UpgradeUIManager : MonoBehaviour
+{
+    public GameObject upgradePanel;
+    public List<Button> upgradeButtons;
+    public List<TextMeshProUGUI> upgradeNameTexts;
+    public List<TextMeshProUGUI> upgradeDescriptionTexts;
+    public List<Image> upgradeIcons;
+
+    public void ShowUpgradeOptions(List<UpgradeData> upgrades)
+    {
+        upgradePanel.SetActive(true);
+        GetComponent<UIJuice>().PlayAnimation();
+
+
+        for (int i = 0; i < upgradeButtons.Count; i++)
+        {
+            if (i < upgrades.Count)
+            {
+                // Ativa e configura o botão
+                upgradeButtons[i].gameObject.SetActive(true);
+                upgradeNameTexts[i].text = upgrades[i].upgradeName;
+                upgradeDescriptionTexts[i].text = upgrades[i].description;
+                upgradeIcons[i].sprite = upgrades[i].icon;
+
+                // Limpa listeners antigos e adiciona o novo
+                upgradeButtons[i].onClick.RemoveAllListeners();
+                var selectedUpgrade = upgrades[i]; // Variável local para evitar problemas de closure
+                upgradeButtons[i].onClick.AddListener(() => GameManager.Instance.ApplyUpgrade(selectedUpgrade));
+            }
+            else
+            {
+                // Desativa botões não utilizados
+                upgradeButtons[i].gameObject.SetActive(false);
+            }
+        }
+    }
+
+    public void HidePanel()
+    {
+        GetComponent<UIJuice>().PlayReverseAnimation();
+    }
+}
+</file>
+
 <file path="Assets/Scripts/Enemy.cs">
 // Assets/Scripts/Enemy.cs
 using UnityEngine;
@@ -528,33 +612,23 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    // --- MÉTODO ATUALIZADO ---
-    private void Die()
-    {
-        // AudioManager.Instance.PlaySoundEffect(SEU_INDICE_DE_MORTE_AQUI);
+    // --- MÉTODO ATUALIZADO ---// Em Enemy.cs, método Die()
 
-        // --- INÍCIO DA LÓGICA DE DROP ---
-        
-        // Primeiro, verifica se o prefab da lenha foi atribuído no Inspector
-        if (woodDropPrefab != null)
+private void Die()
+{
+        GameManager.Instance.SpawnBlueExplosion(transform.position);
+
+    if (woodDropPrefab != null)
         {
-            // Gera um número aleatório entre 0.0 e 1.0
-            // Se for menor que a chance de drop, a condição é verdadeira.
-            if (Random.value < woodDropChance)
+            // Lógica de drop atualizada para incluir o bônus do GameManager
+            float totalDropChance = woodDropChance + GameManager.Instance.bonusWoodDropChance;
+            if (Random.value < totalDropChance)
             {
-                // Instancia o prefab da lenha na posição exata onde o inimigo morreu
                 Instantiate(woodDropPrefab, transform.position, Quaternion.identity);
             }
         }
-        
-        // --- FIM DA LÓGICA DE DROP ---
-
-        // Efeito de partículas de morte, etc.
-        
-        // Por último, destrói o GameObject do inimigo
-        Destroy(gameObject);
-    }
-    
+    Destroy(gameObject);
+}
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision.CompareTag("Bonfire"))
@@ -572,15 +646,15 @@ using System;
 using UnityEngine;
 public class Bonfire : MonoBehaviour
 {
-    public int energia = 10; // Comece com alguma energia inicial
-    public float taxaDePerdaDeEnergia = 0.5f; // Perde 0.5 de energia por segundo
+    // Substitua "energia" por um sistema de vida atual/máxima
+    public float maxHealth = 100f;
+    public float currentHealth;
+    public float taxaDePerdaDeEnergia = 0.5f; // Agora é um stat público
     public LightFlicker luzDaFogueira; // Arraste o objeto da luz da fogueira aqui no Inspector
-
-    private float energiaAtual;
 
     void Start()
     {
-        energiaAtual = energia;
+        currentHealth = maxHealth;
         // Adicione uma verificação para a luz, se ela for essencial
         if (luzDaFogueira == null)
         {
@@ -590,20 +664,18 @@ public class Bonfire : MonoBehaviour
 
     void Update()
     {
-        // Perder energia com o tempo
-        energiaAtual -= taxaDePerdaDeEnergia * Time.deltaTime;
+        currentHealth -= taxaDePerdaDeEnergia * Time.deltaTime;
 
-        // Atualiza a intensidade da luz com base na energia
         if (luzDaFogueira != null)
         {
-            // Mapeia a energia (ex: 0 a 10) para uma intensidade de luz (ex: 0.5 a 1.5)
-            luzDaFogueira.baseIntensity = Mathf.Lerp(0.5f, 1.5f, energiaAtual / energia);
-            luzDaFogueira.baseOuterRadius = Mathf.Lerp(3f, 7f, energiaAtual / energia);
+            // Mapeia a vida (0 a maxHealth) para a intensidade da luz
+            luzDaFogueira.baseIntensity = Mathf.Lerp(0.3f, 1.5f, currentHealth / maxHealth);
+            luzDaFogueira.baseOuterRadius = Mathf.Lerp(2f, 7f, currentHealth / maxHealth);
         }
 
 
         // Condição de derrota (Game Over)
-        if (energiaAtual <= 0)
+        if (currentHealth <= 0)
         {
             Debug.Log("A FOGUEIRA APAGOU! GAME OVER.");
             // Aqui você pode adicionar a lógica de fim de jogo, como:
@@ -612,32 +684,205 @@ public class Bonfire : MonoBehaviour
         }
     }
 
+    // O OnTriggerEnter2D para lenha agora acontece no Player, então este pode ser simplificado ou removido
+    // Se outros objetos além da lenha podem interagir, mantenha-o. Senão, pode apagar.
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision.CompareTag("Lenha"))
         {
-            energiaAtual++;
-            // Garante que a energia não passe do máximo
-            energiaAtual = Mathf.Clamp(energiaAtual, 0, energia);
-            Destroy(collision.gameObject);
-            // Toca um som ao alimentar a fogueira!
-            // AudioManager.Instance.PlaySoundEffect(SEU_INDICE_DE_SOM_AQUI);
+            // Aqui você pode adicionar lógica para coletar a lenha, como:
+            GameManager.Instance.AddXp(1);
+            Destroy(collision.gameObject); // Remove a lenha do jogo
+            currentHealth += 10; // Por exemplo, adiciona 10 de vida à fogueira
+            currentHealth = Mathf.Min(currentHealth, maxHealth); // Garante que não ultrapasse o máximo
+            Debug.Log("Lenha coletada! Vida da fogueira aumentada.");
+            GameManager.Instance.SpawnOrangeExplosion(transform.position); // Efeito visual de coleta
+        }
+          }
+
+    public void ReceberDano(int dano)
+    {
+        currentHealth -= dano;
+    }
+
+    // --- NOVOS MÉTODOS PARA UPGRADES ---
+    public void IncreaseMaxHealth(float multiplier)
+    {
+        float oldMaxHealth = maxHealth;
+        maxHealth *= multiplier;
+        // Cura a fogueira pela quantidade que a vida máxima aumentou
+        currentHealth += maxHealth - oldMaxHealth;
+        currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth); // Garante que não ultrapasse o novo máximo
+    }
+
+    public void HealToFull()
+    {
+        currentHealth = maxHealth;
+    }
+}
+</file>
+
+<file path="Assets/Scripts/GameManager.cs">
+// Assets/Scripts/GameManager.cs
+using System.Collections.Generic;
+using System.Linq;
+using Unity.VisualScripting;
+using UnityEngine;
+using UnityEngine.VFX;
+
+public class GameManager : MonoBehaviour
+{
+    public static GameManager Instance { get; private set; }
+
+    [Header("Referências")]
+    public PlayerController player;
+    public Bonfire bonfire;
+    public UpgradeUIManager upgradeUI; // Vamos criar este script a seguir
+
+    [Header("Controle de Nível")]
+    public int playerLevel = 1;
+    private int currentXp = 0;
+    // Custo de XP para cada nível (Nível 1 custa 1, Nível 2 custa 3, etc.)
+    public int[] xpPerLevel = { 1, 3, 5, 8, 12, 17, 23, 30, 38, 47 }; // Curva até o Nível 10
+
+    [Header("Upgrades")]
+    [Tooltip("Lista com todos os upgrades possíveis no jogo.")]
+    public List<UpgradeData> allUpgrades;
+    private List<UpgradeData> availableUpgrades;
+
+    public ParticleSystem confettiEffect, orangeExplosionEffect, blueExplosionEffect;
+    // Stats Globais Modificáveis
+    public float bonusWoodDropChance = 0f;
+
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
         }
     }
 
-// Em Bonfire.cs
+    private void Start()
+    {
+        // Reseta a lista de upgrades disponíveis no início
+        availableUpgrades = new List<UpgradeData>(allUpgrades);
+    }
 
-// ... seu código existente ...
 
-// Implemente o método que estava faltando
-public void ReceberDano(int dano)
-{
-    energiaAtual -= dano;
-    // Toca um som de dano na fogueira
-    // Adiciona um efeito de partículas de fumaça, etc.
-}
+    public void AddXp(int amount)
+    {
+        if (playerLevel > xpPerLevel.Length) return; // Nível máximo atingido
 
-// O resto do seu código de Bonfire.cs continua igual...
+        currentXp += amount;
+        Debug.Log($"Ganhou {amount} XP. Total: {currentXp}/{xpPerLevel[playerLevel - 1]}");
+
+        // Verifica se alcançou o XP necessário para o próximo nível
+        if (currentXp >= xpPerLevel[playerLevel - 1])
+        {
+            LevelUp();
+        }
+    }
+
+    private void LevelUp()
+    {
+        // Subtrai o custo do nível atual
+        currentXp -= xpPerLevel[playerLevel - 1];
+        playerLevel++;
+        ShowConfetti();
+        Debug.Log($"LEVEL UP! Novo nível: {playerLevel}");
+
+        Time.timeScale = 0f; // Pausa o jogo
+
+        // Seleciona 3 upgrades aleatórios
+        List<UpgradeData> selectedUpgrades = new List<UpgradeData>();
+        var randomUpgrades = availableUpgrades.OrderBy(x => Random.value).ToList();
+
+        int count = Mathf.Min(3, randomUpgrades.Count);
+        for (int i = 0; i < count; i++)
+        {
+            selectedUpgrades.Add(randomUpgrades[i]);
+        }
+
+        // Mostra a tela de upgrade
+        upgradeUI.ShowUpgradeOptions(selectedUpgrades);
+    }
+
+    public void ApplyUpgrade(UpgradeData upgrade)
+    {
+        Debug.Log($"Upgrade selecionado: {upgrade.upgradeName}");
+        switch (upgrade.type)
+        {
+            case UpgradeType.WoodDropChance:
+                bonusWoodDropChance += upgrade.value; // Acumula a chance bônus
+                break;
+            case UpgradeType.PlayerAttackSpeed:
+                player.attackCooldown *= (1f / upgrade.value); // Ex: 1.25x speed -> cooldown * (1/1.25)
+                break;
+            case UpgradeType.BonfireBurnRate:
+                bonfire.taxaDePerdaDeEnergia *= upgrade.value; // Ex: 0.9x burn rate
+                break;
+            case UpgradeType.BonfireMaxHealth:
+                bonfire.IncreaseMaxHealth(upgrade.value);
+                break;
+            case UpgradeType.HealBonfire:
+                bonfire.HealToFull();
+                break;
+            case UpgradeType.PlayerMoveSpeed:
+                player.moveSpeed *= upgrade.value;
+                break;
+        }
+
+        // Remove o upgrade da lista para não ser oferecido de novo (opcional, mas bom)
+        // availableUpgrades.Remove(upgrade);
+
+        // Despausa o jogo
+        Time.timeScale = 1f;
+        upgradeUI.HidePanel();
+
+    }
+
+    public void ShowConfetti()
+    {
+        if (confettiEffect != null)
+        {
+            confettiEffect.Play();
+        }
+    }
+
+    public void SpawnOrangeExplosion(Vector3 position)
+    {
+        if (orangeExplosionEffect != null)
+        {
+            var effect = Instantiate(orangeExplosionEffect, position, Quaternion.identity);
+            // move a little in z
+            effect.transform.position += new Vector3(0, 0, -1f);
+        }
+    }
+    
+    public void SpawnOrangeExplosionOnBonfire()
+    {
+        if (bonfire != null)
+        {
+            SpawnOrangeExplosion(bonfire.transform.position);
+        }
+    }
+
+    public void SpawnBlueExplosion(Vector3 position)
+    {
+        if (blueExplosionEffect != null)
+        {
+            var effect = Instantiate(blueExplosionEffect, position, Quaternion.identity);
+            // move a little in z
+            effect.transform.position += new Vector3(0, 0, -1f);
+
+        }
+    }
+
 }
 </file>
 
@@ -758,6 +1003,8 @@ public class PlayerController : MonoBehaviour
                             // 4. Instancia o prefab na posição do inimigo e com a rotação que acabamos de calcular.
                             //    Substituímos o Quaternion.identity pela nossa targetRotation.
                             Instantiate(slashEffectPrefab, closestEnemy.position, targetRotation);
+
+
                         }
 
                         // --- FIM DA LÓGICA DE ROTAÇÃO ---
