@@ -1,6 +1,6 @@
 using UnityEngine;
 using UnityEngine.Events;
-using DG.Tweening;
+using DG.Tweening; // Certifique-se de que esta linha está presente
 
 [RequireComponent(typeof(CanvasGroup))]
 public class UIJuice : MonoBehaviour
@@ -99,15 +99,17 @@ public class UIJuice : MonoBehaviour
         canvasGroup.alpha = 0f;
         rectTransform.localScale = startScale;
 
-        sequence = DOTween.Sequence();
+        // Adicione .SetUpdate(UpdateType.Realtime, true) para que a sequência ignore o timeScale
+        sequence = DOTween.Sequence(true).SetUpdate(UpdateType.Normal, true);
 
         if (delay > 0)
         {
             sequence.AppendInterval(delay);
         }
 
-        sequence.Append(canvasGroup.DOFade(1f, duration).SetEase(easeType));
-        sequence.Join(rectTransform.DOScale(Vector3.one, duration).SetEase(easeType));
+        // Adicione .SetUpdate(UpdateType.Realtime, true) para cada tween individualmente
+        sequence.Append(canvasGroup.DOFade(1f, duration).SetEase(easeType).SetUpdate(UpdateType.Normal, true));
+        sequence.Join(rectTransform.DOScale(Vector3.one, duration).SetEase(easeType).SetUpdate(UpdateType.Normal, true));
 
         // Pausa a sequência para que o método Play() possa controlá-la
         sequence.Pause();
@@ -121,11 +123,13 @@ public class UIJuice : MonoBehaviour
         // Impede cliques durante a animação de saída
         canvasGroup.blocksRaycasts = false;
 
-        sequence = DOTween.Sequence();
+        // Adicione .SetUpdate(UpdateType.Realtime, true) para que a sequência ignore o timeScale
+        sequence = DOTween.Sequence(true).SetUpdate(UpdateType.Normal, true);
 
         // O delay não é aplicado na animação reversa por padrão, mas pode ser adicionado se necessário
-        sequence.Append(canvasGroup.DOFade(0f, duration).SetEase(Ease.InBack));
-        sequence.Join(rectTransform.DOScale(startScale, duration).SetEase(Ease.InBack));
+        // Adicione .SetUpdate(UpdateType.Realtime, true) para cada tween individualmente
+        sequence.Append(canvasGroup.DOFade(0f, duration).SetEase(Ease.InBack).SetUpdate(UpdateType.Normal, true));
+        sequence.Join(rectTransform.DOScale(startScale, duration).SetEase(Ease.InBack).SetUpdate(UpdateType.Normal, true));
         sequence.OnComplete(() => gameObject.SetActive(false)); // Desativa o objeto ao final
 
         // Pausa a sequência para que o método Play() possa controlá-la

@@ -41,6 +41,6 @@ public class UpgradeUIManager : MonoBehaviour
 
     public void HidePanel()
     {
-        upgradePanel.SetActive(false);
+        GetComponent<UIJuice>().PlayReverseAnimation();
     }
 }

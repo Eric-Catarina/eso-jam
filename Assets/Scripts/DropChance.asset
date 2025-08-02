@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 959046d4584e0fe6fb63d69eb2b034e6, type: 3}
-  m_Name: AttackSpeed
+  m_Name: DropChance
   m_EditorClassIdentifier: 
-  upgradeName: Attack Speed bonus
-  description: Increase attack speed by 25%
-  icon: {fileID: 21300000, guid: 1626be72de486d8ab91c5f38f03e5986, type: 3}
-  type: 1
-  value: 1.25
+  upgradeName: Drop Chance
+  description: Increace drop chance by 15%
+  icon: {fileID: 21300000, guid: fa1bc0d705597069a9d7e57f0d8db410, type: 3}
+  type: 0
+  value: 1.15

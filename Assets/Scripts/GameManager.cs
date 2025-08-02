@@ -1,6 +1,7 @@
 // Assets/Scripts/GameManager.cs
 using System.Collections.Generic;
 using System.Linq;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
@@ -114,5 +115,7 @@ public class GameManager : MonoBehaviour
         // Despausa o jogo
         Time.timeScale = 1f;
         upgradeUI.HidePanel();
+
     }
+
 }
