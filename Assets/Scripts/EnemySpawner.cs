@@ -12,17 +12,20 @@ public class EnemySpawner : MonoBehaviour
 
     void Start()
     {
-        player = FindObjectOfType<PlayerController>().transform; // Encontra o jogador
-        bonfire = GameObject.FindGameObjectWithTag("Bonfire").transform; // Encontra a fogueira
-        InvokeRepeating("SpawnEnemy", 1f, 1f / spawnRate);
     }
 
     void SpawnEnemy()
     {
         // Pega uma direção aleatória e a multiplica pelo raio
-        Vector2 spawnPos = bonfire.position;
+        Vector2 spawnPos = transform.position;
         spawnPos += Random.insideUnitCircle.normalized * spawnRadius;
 
         Instantiate(enemyPrefab, spawnPos, Quaternion.identity);
+    }
+
+    public void StartSpawning()
+    {
+        CancelInvoke("SpawnEnemy");
+        InvokeRepeating("SpawnEnemy", 1f, 1f / spawnRate);
     }
 }

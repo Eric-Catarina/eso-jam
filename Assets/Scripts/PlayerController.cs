@@ -37,15 +37,13 @@ public class PlayerController : MonoBehaviour
 
     [Header("Lançar Lenha")]
     public float throwDuration = 0.7f; // Duração do voo da lenha
-    private LineRenderer aimLine;
     private Transform bonfireTransform;
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
 
         // Pega a referência do LineRenderer e o desativa
-        aimLine = GetComponent<LineRenderer>();
-        aimLine.enabled = false;
+
 
         // Encontra a fogueira na cena para saber o alvo do arremesso
         GameObject bonfireObj = GameObject.FindGameObjectWithTag("Bonfire");
@@ -177,56 +175,6 @@ public class PlayerController : MonoBehaviour
     {
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackRadius);
-    }
-
-    void HandleAimingAndThrowing()
-    {
-        // Se não tiver lenha, não faz nada
-        if (lenhaNoInventario <= 0 || bonfireTransform == null)
-        {
-            aimLine.enabled = false;
-            return;
-        }
-
-        // Pega a posição do mouse no mundo do jogo
-        Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-        mouseWorldPos.z = 0f;
-
-        // Ponto de onde a lenha/mira sai
-        Vector3 spawnPos = woodSpawnPoint != null ? woodSpawnPoint.position : transform.position;
-
-        // Enquanto o botão do mouse estiver pressionado, mostra a mira
-        if (Input.GetMouseButton(0))
-        {
-            aimLine.enabled = true;
-            // A mira aponta do jogador na direção do mouse
-            aimLine.SetPosition(0, spawnPos);
-            aimLine.SetPosition(1, mouseWorldPos);
-        }
-
-        // Ao soltar o botão, arremessa a lenha
-        if (Input.GetMouseButtonUp(0))
-        {
-            aimLine.enabled = false; // Esconde a mira
-
-            lenhaNoInventario--;
-            // AudioManager.Instance.PlaySoundEffect(SEU_INDICE_DE_ARREMESSO_AQUI);
-
-            GameObject wood = Instantiate(woodPrefab, spawnPos, Quaternion.identity);
-            ThrownWood thrownWoodScript = wood.GetComponent<ThrownWood>();
-
-            if (thrownWoodScript != null)
-            {
-                // Inicia a animação de arremesso em direção à fogueira
-                thrownWoodScript.Launch(bonfireTransform.position, throwDuration);
-            }
-        }
-
-        // Se o jogador soltar o clique sem querer, esconde a linha
-        if (!Input.GetMouseButton(0) && aimLine.enabled)
-        {
-            aimLine.enabled = false;
-        }
     }
     public void ThrowWood()
     {
