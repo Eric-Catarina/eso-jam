@@ -48,13 +48,7 @@ public class GameManager : MonoBehaviour
         // Reseta a lista de upgrades disponíveis no início
         availableUpgrades = new List<UpgradeData>(allUpgrades);
     }
-    // private void Update()
-    // {
-    //     if (Time.timeScale < 0.01f)
-    //     {
-    //         confettiEffect.Simulate(Time.unscaledDeltaTime, true, false);
-    //     }
-    // }
+    
 
     public void AddXp(int amount)
     {
