@@ -31,7 +31,9 @@ public class EnemyTank : Enemy
         // Lógica de drop especial: sempre dropa 3 lenhas
         if (woodDropPrefab != null)
         {
-            for (int i = 0; i < 3; i++)
+            AudioManager.Instance.PlaySoundEffect(0);
+
+            for (int i = 0; i < 2; i++)
             {
                 // Pequeno offset aleatório para não spawnar todas no mesmo lugar
                 Vector2 spawnPos = (Vector2)transform.position + Random.insideUnitCircle * 0.5f;

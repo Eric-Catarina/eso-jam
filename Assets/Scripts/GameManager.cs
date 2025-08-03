@@ -9,6 +9,7 @@ using UnityEngine.SceneManagement;
 public class GameManager : MonoBehaviour
 {
     private bool isGameRunning = false;
+    public float timeToWin = 300, timeToWinFirst = 120; // Tempo para vencer em segundos (2 minutos)
     public static GameManager Instance { get; private set; }
 
     [Header("Referências")]
@@ -19,7 +20,7 @@ public class GameManager : MonoBehaviour
 
     [Header("UI")]
     public GameObject losePanel;
-    public GameObject winPanel; // Opcional: Um painel de vitória
+    public GameObject firstWinPanel, winPanel; // Opcional: Um painel de vitória
     public GameObject startPanel; // Opcional: Um painel com um botão "Iniciar"
 
     [Header("Controle de Nível")]
@@ -35,7 +36,7 @@ public class GameManager : MonoBehaviour
 
     public ParticleSystem confettiEffect, orangeExplosionEffect, blueExplosionEffect;
     // Stats Globais Modificáveis
-    public float bonusWoodDropChance = 0f;
+    public float woodDropRate = 1f;
 
     private void Awake()
     {
@@ -69,22 +70,29 @@ public class GameManager : MonoBehaviour
         AudioManager.Instance.PlayBackgroundMusic(1); // Toca a música do menu ou inicial
         // Inicia os sistemas do jogo
         availableUpgrades = new List<UpgradeData>(allUpgrades);
-        
+
         if (enemySpawner == null)
         {
             Debug.LogError("Referência ao EnemySpawner não foi definida no GameManager!");
             return;
         }
         enemySpawner.StartSpawning();
-        
+
         // Inicia o timer de vitória (2 minutos)
         StartCoroutine(VictoryTimer());
+        StartCoroutine(SecondPartTimer());
     }
 
     private IEnumerator VictoryTimer()
     {
-        yield return new WaitForSeconds(120); // Espera 2 minutos
+        yield return new WaitForSeconds(timeToWin); // Espera 2 minutos
         WinGame();
+    }
+
+        private IEnumerator SecondPartTimer()
+    {
+        yield return new WaitForSeconds(timeToWinFirst); // Espera 2 minutos
+        FirstPartWin();
     }
 
     public void AddXp(int amount)
@@ -132,7 +140,7 @@ public class GameManager : MonoBehaviour
         switch (upgrade.type)
         {
             case UpgradeType.WoodDropChance:
-                bonusWoodDropChance += upgrade.value; // Acumula a chance bônus
+                woodDropRate *= upgrade.value; // Acumula a chance bônus
                 break;
             case UpgradeType.PlayerAttackSpeed:
                 player.attackCooldown *= (1f / upgrade.value); // Ex: 1.25x speed -> cooldown * (1/1.25)
@@ -215,6 +223,26 @@ public class GameManager : MonoBehaviour
         if (winPanel != null) winPanel.SetActive(true);
         Time.timeScale = 0f;
         DifficultyManager.Instance.StopTimer();
+    }
+
+    public void FirstPartWin()
+    {
+        Debug.Log("Você sobreviveu! Vitória!");
+        if (firstWinPanel != null) firstWinPanel.SetActive(true);
+        confettiEffect.Play();
+        Time.timeScale = 0f;
+        DifficultyManager.Instance.StopTimer();
+    }
+
+    public void StartSecondPart()
+    {
+        Debug.Log("Iniciando a segunda parte do jogo...");
+        Time.timeScale = 1f; // Retorna o tempo ao normal
+        isGameRunning = true;
+
+        // Reinicia o tempo de jogo
+        DifficultyManager.Instance.ResetTimer();
+
     }
 
     public void LoseGame()

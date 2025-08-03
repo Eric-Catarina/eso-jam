@@ -7,20 +7,20 @@ public class DifficultyManager : MonoBehaviour
 
     [Header("Controle de Tempo")]
     [Tooltip("Duração total da partida em segundos (ex: 120 para 2 minutos).")]
-    public float totalMatchTime = 120f;
+    public float totalMatchTime = 300f;
     private float elapsedTime = 0f;
     private bool isGameActive = true;
 
     [Header("Curvas de Dificuldade (0 a 1)")]
     [Tooltip("Controla a taxa de spawn. X=0 (início), X=1 (fim). Y é o multiplicador.")]
-    public AnimationCurve spawnRateCurve = AnimationCurve.EaseInOut(0, 1, 1, 3f); // Começa em 1x, termina em 3x
+    public AnimationCurve spawnRateCurve;
 
     [Tooltip("Controla a velocidade dos inimigos.")]
-    public AnimationCurve enemySpeedCurve = AnimationCurve.EaseInOut(0, 1, 1, 1.5f); // Termina em 1.5x
+    public AnimationCurve enemySpeedCurve;
 
     [Tooltip("Controla a vida dos inimigos.")]
 
-    public AnimationCurve enemyHealthCurve = AnimationCurve.EaseInOut(0, 1, 1, 2.5f); // Termina em 2.5x
+    public AnimationCurve enemyHealthCurve;
 
     // --- Propriedades Públicas para outros scripts consultarem ---
     public float SpawnRateMultiplier;
@@ -75,5 +75,9 @@ public class DifficultyManager : MonoBehaviour
     public void StopTimer()
     {
         isGameActive = false;
+    }
+    public void ResetTimer()
+    {
+        isGameActive = true;
     }
 }

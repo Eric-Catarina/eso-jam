@@ -15,7 +15,10 @@ public class UpgradeUIManager : MonoBehaviour
     public void ShowUpgradeOptions(List<UpgradeData> upgrades)
     {
         upgradePanel.SetActive(true);
+        DisableButtons();
         GetComponent<UIJuice>().PlayAnimation();
+
+
 
         Debug.Log($"Mostrando {upgrades.Count} opções de upgrade.");
         for (int i = 0; i < upgradeButtons.Count; i++)
@@ -23,7 +26,7 @@ public class UpgradeUIManager : MonoBehaviour
             if (i < upgrades.Count)
             {
                 // Ativa e configura o botão
-                upgradeButtons[i].gameObject.SetActive(true);
+                // upgradeButtons[i].gameObject.SetActive(true);
                 upgradeNameTexts[i].text = upgrades[i].upgradeName;
                 upgradeDescriptionTexts[i].text = upgrades[i].description;
                 upgradeIcons[i].sprite = upgrades[i].icon;
@@ -49,10 +52,22 @@ public class UpgradeUIManager : MonoBehaviour
         // disable buttons and remove listeners
         foreach (var button in upgradeButtons)
         {
-            button.gameObject.SetActive(false);
+            button.interactable = false;
             button.onClick.RemoveAllListeners();
         }
-
-
+    }
+    public void EnableButtons()
+    {
+        foreach (var button in upgradeButtons)
+        {
+            button.interactable = true;
+        }
+    }
+        public void DisableButtons()
+    {
+        foreach (var button in upgradeButtons)
+        {
+            button.interactable = false;
+        }
     }
 }

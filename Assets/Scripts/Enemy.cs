@@ -86,7 +86,7 @@ public abstract class Enemy : MonoBehaviour
 
         if (woodDropPrefab != null)
         {
-            float totalDropChance = woodDropChance + GameManager.Instance.bonusWoodDropChance;
+            float totalDropChance = woodDropChance * GameManager.Instance.woodDropRate;
             if (Random.value < totalDropChance)
             {
                 AudioManager.Instance.PlaySoundEffect(0);
