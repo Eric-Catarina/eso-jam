@@ -67,88 +67,6 @@ Assets/
 <files>
 This section contains the contents of the repository's files.
 
-<file path="Assets/Scripts/DifficultyManager.cs">
-// Assets/Scripts/DifficultyManager.cs
-using UnityEngine;
-
-public class DifficultyManager : MonoBehaviour
-{
-    public static DifficultyManager Instance { get; private set; }
-
-    [Header("Controle de Tempo")]
-    [Tooltip("Duração total da partida em segundos (ex: 120 para 2 minutos).")]
-    public float totalMatchTime = 120f;
-    private float elapsedTime = 0f;
-    private bool isGameActive = true;
-
-    [Header("Curvas de Dificuldade (0 a 1)")]
-    [Tooltip("Controla a taxa de spawn. X=0 (início), X=1 (fim). Y é o multiplicador.")]
-    public AnimationCurve spawnRateCurve = AnimationCurve.EaseInOut(0, 1, 1, 3f); // Começa em 1x, termina em 3x
-
-    [Tooltip("Controla a velocidade dos inimigos.")]
-    public AnimationCurve enemySpeedCurve = AnimationCurve.EaseInOut(0, 1, 1, 1.5f); // Termina em 1.5x
-
-    [Tooltip("Controla a vida dos inimigos.")]
-
-    public AnimationCurve enemyHealthCurve = AnimationCurve.EaseInOut(0, 1, 1, 2.5f); // Termina em 2.5x
-
-    // --- Propriedades Públicas para outros scripts consultarem ---
-    public float SpawnRateMultiplier;
-    public float EnemySpeedMultiplier;
-    public float EnemyHealthMultiplier;
-    private void Awake()
-    {
-        if (Instance == null)
-        {
-            Instance = this;
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
-    }
-
-    private void Start()
-    {
-        // Garante que o jogo comece na dificuldade inicial
-        UpdateDifficulty(0);
-    }
-
-    private void Update()
-    {
-        if (!isGameActive) return;
-
-        elapsedTime += Time.deltaTime;
-
-        // Calcula o progresso do tempo como uma porcentagem de 0 a 1
-        float timeProgress = Mathf.Clamp01(elapsedTime / totalMatchTime);
-
-        UpdateDifficulty(timeProgress);
-
-        // Se o tempo acabar, você pode adicionar uma condição de vitória aqui
-        if (elapsedTime >= totalMatchTime)
-        {
-            isGameActive = false;
-            Debug.Log("SOBREVIVEU! VITÓRIA!");
-            // GameManager.Instance.WinGame();
-        }
-    }
-
-    private void UpdateDifficulty(float progress)
-    {
-        // Avalia cada curva para obter os multiplicadores atuais
-        SpawnRateMultiplier = spawnRateCurve.Evaluate(progress);
-        EnemySpeedMultiplier = enemySpeedCurve.Evaluate(progress);
-        EnemyHealthMultiplier = enemyHealthCurve.Evaluate(progress);
-    }
-
-    public void StopTimer()
-    {
-        isGameActive = false;
-    }
-}
-</file>
-
 <file path="Assets/Scripts/DashGost.cs">
 using UnityEngine;
 
@@ -182,122 +100,6 @@ public class DashGhost : MonoBehaviour
         Color color = sr.color;
         color.a -= Time.deltaTime / duration;
         sr.color = color;
-    }
-}
-</file>
-
-<file path="Assets/Scripts/EnemyCommon.cs">
-// Assets/Scripts/EnemyCommon.cs
-using UnityEngine;
-
-public class EnemyCommon : Enemy
-{
-    [Header("Movimento Comum")]
-    public float swaySpeed = 2f;
-    public float swayAmount = 1.5f;
-    private float randomOffset;
-
-    protected override void Start()
-    {
-        base.Start(); // Executa o Start() da classe mãe
-        randomOffset = Random.Range(0f, 100f); // Garante que cada inimigo se mova diferente
-    }
-
-    protected override void Move()
-    {
-        // Direção principal para a fogueira
-        Vector2 directionToTarget = (target.position - transform.position).normalized;
-        
-        // Direção perpendicular para o balanço
-        Vector2 perpendicular = new Vector2(-directionToTarget.y, directionToTarget.x);
-        
-        // Usa Perlin Noise para um movimento de balanço suave e orgânico
-        float sway = (Mathf.PerlinNoise(Time.time * swaySpeed, randomOffset) - 0.5f) * 2f; // Valor entre -1 e 1
-        
-        // Combina a direção principal com o balanço
-        Vector2 finalDirection = (directionToTarget + perpendicular * sway * swayAmount).normalized;
-        
-        transform.Translate(finalDirection * finalSpeed * Time.deltaTime, Space.World);    }
-}
-</file>
-
-<file path="Assets/Scripts/EnemyFast.cs">
-// Assets/Scripts/EnemyFast.cs
-using UnityEngine;
-
-public class EnemyFast : Enemy
-{
-    [Header("Movimento Rápido")]
-    public float spiralFrequency = 3f; // Quão rápido ele oscila
-    public float spiralMagnitude = 0.8f; // Quão largo é o círculo da espiral
-
-    protected override void Start()
-    {
-        // Stats: Rápido e com menos vida (AGORA APLICA ANTES do modificador de dificuldade)
-        baseSpeed *= 2.0f;
-        baseMaxHealth = Mathf.RoundToInt(baseMaxHealth * 0.5f);
-        
-        // Chama o Start da classe base, que vai aplicar os modificadores de dificuldade em cima desses novos valores
-        base.Start();
-    }
-    protected override void Move()
-    {
-        Vector2 directionToTarget = (target.position - transform.position).normalized;
-        Vector2 perpendicular = new Vector2(-directionToTarget.y, directionToTarget.x);
-        
-        // Usa Seno para criar um movimento circular perfeito
-        float spiralOffset = Mathf.Sin(Time.time * spiralFrequency) * spiralMagnitude;
-        
-        Vector2 finalDirection = (directionToTarget + perpendicular * spiralOffset).normalized;
-        
-        transform.Translate(finalDirection * finalSpeed * Time.deltaTime, Space.World);    }
-}
-</file>
-
-<file path="Assets/Scripts/EnemyTank.cs">
-// Assets/Scripts/EnemyTank.cs
-using UnityEngine;
-
-public class EnemyTank : Enemy
-{
-    protected override void Start()
-    {
-        // Stats: Lento e com mais vida
-        baseSpeed *= 0.5f;
-        baseMaxHealth *= 3;
-        
-        // Chama o Start da classe base, que vai aplicar os modificadores de dificuldade
-        base.Start();
-    }
-
-    // Movimento simples e direto
-    protected override void Move()
-    {
-        transform.position = Vector2.MoveTowards(transform.position, target.position, finalSpeed * Time.deltaTime);    }
-
-    // Sobrescreve o método Die para dropar 3 lenhas
-    protected override void Die()
-    {
-        GameManager.Instance.SpawnBlueExplosion(transform.position);
-
-        if (fireDeath)
-        {
-            GameManager.Instance.SpawnOrangeExplosion(transform.position);
-            Destroy(gameObject);
-            return;
-        }
-
-        // Lógica de drop especial: sempre dropa 3 lenhas
-        if (woodDropPrefab != null)
-        {
-            for (int i = 0; i < 3; i++)
-            {
-                // Pequeno offset aleatório para não spawnar todas no mesmo lugar
-                Vector2 spawnPos = (Vector2)transform.position + Random.insideUnitCircle * 0.5f;
-                Instantiate(woodDropPrefab, spawnPos, Quaternion.identity);
-            }
-        }
-        Destroy(gameObject);
     }
 }
 </file>
@@ -452,131 +254,40 @@ public class ThrownWood : MonoBehaviour
 }
 </file>
 
-<file path="Assets/Scripts/UIWobbleEffect.cs">
-// Assets/Scripts/UI/UIWobbleEffect.cs
+<file path="Assets/Scripts/DifficultyManager.cs">
+// Assets/Scripts/DifficultyManager.cs
 using UnityEngine;
-using DG.Tweening; // Não se esqueça de importar o DOTween
 
-public class UIWobbleEffect : MonoBehaviour
+public class DifficultyManager : MonoBehaviour
 {
-    [Header("Configuração do Movimento")]
-    [Tooltip("Distância máxima que o elemento se moverá no eixo X (esquerda/direita).")]
-    public float moveDistanceX = 10f;
+    public static DifficultyManager Instance { get; private set; }
 
-    [Tooltip("Distância máxima que o elemento se moverá no eixo Y (cima/baixo).")]
-    public float moveDistanceY = 15f;
+    [Header("Controle de Tempo")]
+    [Tooltip("Duração total da partida em segundos (ex: 120 para 2 minutos).")]
+    public float totalMatchTime = 300f;
+    private float elapsedTime = 0f;
+    private bool isGameActive = true;
 
-    [Header("Configuração de Tempo e Aleatoriedade")]
-    [Tooltip("A duração base para cada movimento de 'onda'.")]
-    public float baseDuration = 1.5f;
+    [Header("Curvas de Dificuldade (0 a 1)")]
+    [Tooltip("Controla a taxa de spawn. X=0 (início), X=1 (fim). Y é o multiplicador.")]
+    public AnimationCurve spawnRateCurve;
 
-    [Tooltip("Controla o quão aleatório será o movimento. 0 = sem aleatoriedade (onda perfeita), 1 = muito aleatório.")]
-    [Range(0f, 1f)]
-    public float randomness = 0.5f;
+    [Tooltip("Controla a velocidade dos inimigos.")]
+    public AnimationCurve enemySpeedCurve;
 
-    [Header("Controle")]
-    [Tooltip("Se marcado, o efeito começa a tocar assim que o objeto for ativado.")]
-    public bool playOnAwake = true;
+    [Tooltip("Controla a vida dos inimigos.")]
 
-    // --- Variáveis Privadas ---
-    private Vector3 originalPosition;
-    private Sequence mainSequence;
+    public AnimationCurve enemyHealthCurve;
 
-    private void Awake()
-    {
-        // Guarda a posição inicial para que o efeito seja sempre relativo a ela
-        originalPosition = transform.localPosition;
-    }
-
-    private void OnEnable()
-    {
-        // Reinicia o efeito se o objeto for reativado
-        if (playOnAwake)
-        {
-            Play();
-        }
-    }
-
-    private void OnDisable()
-    {
-        // Para a animação quando o objeto é desativado para evitar erros
-        Stop();
-    }
-
-    /// <summary>
-    /// Inicia o efeito de ondulação.
-    /// </summary>
-    public void Play()
-    {
-        // Garante que não haja sequências antigas rodando
-        if (mainSequence != null && mainSequence.IsActive())
-        {
-            mainSequence.Kill();
-        }
-
-        // Inicia o primeiro movimento
-        StartWobble();
-    }
-
-    /// <summary>
-    /// Para o efeito e retorna o elemento à sua posição original.
-    /// </summary>
-    public void Stop()
-    {
-        mainSequence?.Kill();
-        // Opcional: Anima suavemente de volta à posição original
-        transform.DOLocalMove(originalPosition, 0.2f).SetEase(Ease.OutCubic);
-    }
-    
-    /// <summary>
-    /// O coração do efeito. Esta função se chama recursivamente
-    /// ao final de cada movimento para criar um loop infinito e aleatório.
-    /// </summary>
-    private void StartWobble()
-    {
-        // Calcula parâmetros aleatórios para ESTE movimento específico
-        float randomDurationFactor = Random.Range(1f - randomness, 1f + randomness);
-        float currentDuration = baseDuration * randomDurationFactor;
-
-        // Calcula um ponto alvo aleatório dentro dos limites definidos
-        float targetX = originalPosition.x + Random.Range(-moveDistanceX, moveDistanceX);
-        float targetY = originalPosition.y + Random.Range(-moveDistanceY, moveDistanceY);
-
-        // Cria a sequência de animação
-        mainSequence = DOTween.Sequence();
-        mainSequence.Append(transform.DOLocalMove(new Vector3(targetX, targetY, originalPosition.z), currentDuration)
-                .SetEase(Ease.InOutSine)) // Ease.InOutSine cria a sensação suave de "onda"
-            .OnComplete(StartWobble); // Magia! Ao completar, chama a si mesma para o próximo movimento.
-    }
-}
-</file>
-
-<file path="Assets/Scripts/AudioManager.cs">
-using UnityEngine;
-using System.Collections.Generic;
-
-public class AudioManager : MonoBehaviour
-{
-    public static AudioManager Instance { get; private set; }
-
-    [Header("Músicas")]
-    [Tooltip("Lista de músicas de fundo disponíveis.")]
-    public List<AudioClip> backgroundMusicClips = new List<AudioClip>(); // Lista de músicas
-    public AudioSource bgmAudioSource;
-
-    [Header("Efeitos Sonoros")]
-    public AudioSource sfxAudioSource;
-    [Tooltip("Lista dos clipes de áudio dos efeitos sonoros.")]
-    public List<AudioClip> soundEffectClips;
-
-    private const float PITCH_VARIATION_PERCENTAGE = 0.10f; // 10%
-
+    // --- Propriedades Públicas para outros scripts consultarem ---
+    public float SpawnRateMultiplier;
+    public float EnemySpeedMultiplier;
+    public float EnemyHealthMultiplier;
     private void Awake()
     {
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject);
         }
         else
         {
@@ -584,133 +295,83 @@ public class AudioManager : MonoBehaviour
         }
     }
 
-    void Start()
+    private void Start()
     {
-        // Exemplo: Inicia a música do menu ao carregar a cena inicial
-        PlayBackgroundMusic(0); // Assume que a música do menu é o primeiro clipe na lista
+        // Garante que o jogo comece na dificuldade inicial
+        UpdateDifficulty(0);
     }
 
-    /// <summary>
-    /// Toca uma música de fundo específica da lista.
-    /// </summary>
-    /// <param name="musicIndex">O índice da música na lista 'backgroundMusicClips'.</param>
-    public void PlayBackgroundMusic(int musicIndex)
+    private void Update()
     {
-        if (bgmAudioSource == null || backgroundMusicClips.Count == 0)
+        if (!isGameActive) return;
+
+        elapsedTime += Time.deltaTime;
+
+        // Calcula o progresso do tempo como uma porcentagem de 0 a 1
+        float timeProgress = Mathf.Clamp01(elapsedTime / totalMatchTime);
+
+        UpdateDifficulty(timeProgress);
+
+        // Se o tempo acabar, você pode adicionar uma condição de vitória aqui
+        if (elapsedTime >= totalMatchTime)
         {
-            Debug.LogWarning("AudioManager: bgmAudioSource não atribuído ou lista de músicas vazia.");
-            return;
-        }
-
-        if (musicIndex < 0 || musicIndex >= backgroundMusicClips.Count || backgroundMusicClips[musicIndex] == null)
-        {
-            Debug.LogWarning($"AudioManager: Índice de música inválido ({musicIndex}).");
-            return;
-        }
-
-        bgmAudioSource.clip = backgroundMusicClips[musicIndex];
-        bgmAudioSource.loop = true;
-        ApplyRandomPitch(bgmAudioSource);
-        bgmAudioSource.Play();
-    }
-
-    public void PlaySecondBackgroundMusic(int musicIndex)
-    {
-        if (bgmAudioSource == null || backgroundMusicClips.Count == 0)
-        {
-            Debug.LogWarning("AudioManager: bgmAudioSource não atribuído ou lista de músicas vazia.");
-            return;
-        }
-
-        if (musicIndex < 0 || musicIndex >= backgroundMusicClips.Count || backgroundMusicClips[musicIndex] == null)
-        {
-            Debug.LogWarning($"AudioManager: Índice de música inválido ({musicIndex}).");
-            return;
-        }
-
-        bgmAudioSource.clip = backgroundMusicClips[musicIndex];
-        bgmAudioSource.loop = true;
-        ApplyRandomPitch(bgmAudioSource);
-        bgmAudioSource.Play();
-    }
-
-    /// <summary>
-    /// Para a música de fundo.
-    /// </summary>
-    public void StopBackgroundMusic()
-    {
-        if (bgmAudioSource != null)
-        {
-            bgmAudioSource.Stop();
+            isGameActive = false;
+            Debug.Log("SOBREVIVEU! VITÓRIA!");
+            // GameManager.Instance.WinGame();
         }
     }
 
-    /// <summary>
-    /// Toca um efeito sonoro específico da lista.
-    /// </summary>
-    /// <param name="sfxIndex">O índice do efeito sonoro na lista 'soundEffectClips'.</param>
-    /// <param name="volumeScale">Escala de volume opcional para este efeito sonoro (padrão é 1.0f).</param>
-    public void PlaySoundEffect(int sfxIndex, float volumeScale = 1.0f)
+    private void UpdateDifficulty(float progress)
     {
-        if (sfxAudioSource == null)
-        {
-            Debug.LogWarning("AudioManager: sfxAudioSource não foi atribuído. Efeito sonoro não pode ser tocado.");
-            return;
-        }
-
-        if (sfxIndex < 0 || sfxIndex >= soundEffectClips.Count || soundEffectClips[sfxIndex] == null)
-        {
-            Debug.LogWarning($"AudioManager: Índice de efeito sonoro inválido ({sfxIndex}) ou clipe de áudio não atribuído.");
-            return;
-        }
-
-        ApplyRandomPitch(sfxAudioSource);
-        sfxAudioSource.PlayOneShot(soundEffectClips[sfxIndex], volumeScale);
+        // Avalia cada curva para obter os multiplicadores atuais
+        SpawnRateMultiplier = spawnRateCurve.Evaluate(progress);
+        EnemySpeedMultiplier = enemySpeedCurve.Evaluate(progress);
+        EnemyHealthMultiplier = enemyHealthCurve.Evaluate(progress);
     }
 
-    public void PlayConfettiSound()
+    public void StopTimer()
     {
-        if (sfxAudioSource == null)
-        {
-            Debug.LogWarning("AudioManager: sfxAudioSource não foi atribuído. Efeito sonoro de confete não pode ser tocado.");
-            return;
-        }
+        isGameActive = false;
+    }
+    public void ResetTimer()
+    {
+        isGameActive = true;
+    }
+}
+</file>
 
-        AudioClip confettiClip = soundEffectClips.Find(clip => clip.name.Contains("Confetti"));
-        if (confettiClip != null)
-        {
-            ApplyRandomPitch(sfxAudioSource);
-            sfxAudioSource.PlayOneShot(confettiClip);
-        }
-        else
-        {
-            Debug.LogWarning("AudioManager: Clip de confete não encontrado na lista de efeitos sonoros.");
-        }
+<file path="Assets/Scripts/EnemyCommon.cs">
+// Assets/Scripts/EnemyCommon.cs
+using UnityEngine;
+
+public class EnemyCommon : Enemy
+{
+    [Header("Movimento Comum")]
+    public float swaySpeed = 2f;
+    public float swayAmount = 1.5f;
+    private float randomOffset;
+
+    protected override void Start()
+    {
+        base.Start(); // Executa o Start() da classe mãe
+        randomOffset = Random.Range(0f, 100f); // Garante que cada inimigo se mova diferente
     }
 
-    public void PlaySoundEffectClip(AudioClip clip, float volumeScale = 1.0f)
-  {
-    if (sfxAudioSource == null)
+    protected override void Move()
     {
-      Debug.LogWarning("AudioManager: sfxAudioSource não foi atribuído. Efeito sonoro não pode ser tocado.");
-      return;
-    }
-
-    if (clip == null)
-    {
-      Debug.LogWarning("AudioManager: Clip de áudio é nulo. Efeito sonoro não pode ser tocado.");
-      return;
-    }
-
-    ApplyRandomPitch(sfxAudioSource);
-    sfxAudioSource.PlayOneShot(clip, volumeScale);
-  }
-
-    private void ApplyRandomPitch(AudioSource audioSource)
-  {
-    float randomPitch = Random.Range(1f - PITCH_VARIATION_PERCENTAGE, 1f + PITCH_VARIATION_PERCENTAGE);
-    audioSource.pitch = randomPitch;
-  }
+        // Direção principal para a fogueira
+        Vector2 directionToTarget = (target.position - transform.position).normalized;
+        
+        // Direção perpendicular para o balanço
+        Vector2 perpendicular = new Vector2(-directionToTarget.y, directionToTarget.x);
+        
+        // Usa Perlin Noise para um movimento de balanço suave e orgânico
+        float sway = (Mathf.PerlinNoise(Time.time * swaySpeed, randomOffset) - 0.5f) * 2f; // Valor entre -1 e 1
+        
+        // Combina a direção principal com o balanço
+        Vector2 finalDirection = (directionToTarget + perpendicular * sway * swayAmount).normalized;
+        
+        transform.Translate(finalDirection * finalSpeed * Time.deltaTime, Space.World);    }
 }
 </file>
 
@@ -810,6 +471,282 @@ public class LightFlicker : MonoBehaviour
 }
 </file>
 
+<file path="Assets/Scripts/UIWobbleEffect.cs">
+// Assets/Scripts/UI/UIWobbleEffect.cs
+using UnityEngine;
+using DG.Tweening; // Não se esqueça de importar o DOTween
+
+public class UIWobbleEffect : MonoBehaviour
+{
+    [Header("Configuração do Movimento")]
+    [Tooltip("Distância máxima que o elemento se moverá no eixo X (esquerda/direita).")]
+    public float moveDistanceX = 10f;
+
+    [Tooltip("Distância máxima que o elemento se moverá no eixo Y (cima/baixo).")]
+    public float moveDistanceY = 15f;
+
+    [Header("Configuração de Tempo e Aleatoriedade")]
+    [Tooltip("A duração base para cada movimento de 'onda'.")]
+    public float baseDuration = 1.5f;
+
+    [Tooltip("Controla o quão aleatório será o movimento. 0 = sem aleatoriedade (onda perfeita), 1 = muito aleatório.")]
+    [Range(0f, 1f)]
+    public float randomness = 0.5f;
+
+    [Header("Controle")]
+    [Tooltip("Se marcado, o efeito começa a tocar assim que o objeto for ativado.")]
+    public bool playOnAwake = true;
+
+    // --- Variáveis Privadas ---
+    private Vector3 originalPosition;
+    private Sequence mainSequence;
+
+    private void Awake()
+    {
+        // Guarda a posição inicial para que o efeito seja sempre relativo a ela
+        originalPosition = transform.localPosition;
+    }
+
+    private void OnEnable()
+    {
+        // Reinicia o efeito se o objeto for reativado
+        if (playOnAwake)
+        {
+            Play();
+        }
+    }
+
+    private void OnDisable()
+    {
+        // Para a animação quando o objeto é desativado para evitar erros
+        Stop();
+    }
+
+    /// <summary>
+    /// Inicia o efeito de ondulação.
+    /// </summary>
+    public void Play()
+    {
+        // Garante que não haja sequências antigas rodando
+        if (mainSequence != null && mainSequence.IsActive())
+        {
+            mainSequence.Kill();
+        }
+
+        // Inicia o primeiro movimento
+        StartWobble();
+    }
+
+    /// <summary>
+    /// Para o efeito e retorna o elemento à sua posição original.
+    /// </summary>
+    public void Stop()
+    {
+        mainSequence?.Kill();
+        // Opcional: Anima suavemente de volta à posição original
+        transform.DOLocalMove(originalPosition, 0.2f).SetEase(Ease.OutCubic);
+    }
+    
+    /// <summary>
+    /// O coração do efeito. Esta função se chama recursivamente
+    /// ao final de cada movimento para criar um loop infinito e aleatório.
+    /// </summary>
+    private void StartWobble()
+    {
+        // Calcula parâmetros aleatórios para ESTE movimento específico
+        float randomDurationFactor = Random.Range(1f - randomness, 1f + randomness);
+        float currentDuration = baseDuration * randomDurationFactor;
+
+        // Calcula um ponto alvo aleatório dentro dos limites definidos
+        float targetX = originalPosition.x + Random.Range(-moveDistanceX, moveDistanceX);
+        float targetY = originalPosition.y + Random.Range(-moveDistanceY, moveDistanceY);
+
+        // Cria a sequência de animação
+        mainSequence = DOTween.Sequence(true).SetUpdate(UpdateType.Normal, true);
+        mainSequence.Append(transform.DOLocalMove(new Vector3(targetX, targetY, originalPosition.z), currentDuration)
+                .SetEase(Ease.InOutSine)) // Ease.InOutSine cria a sensação suave de "onda"
+            .OnComplete(StartWobble); // Magia! Ao completar, chama a si mesma para o próximo movimento.
+    }
+}
+</file>
+
+<file path="Assets/Scripts/AudioManager.cs">
+using UnityEngine;
+using System.Collections.Generic;
+
+public class AudioManager : MonoBehaviour
+{
+    public static AudioManager Instance { get; private set; }
+
+    [Header("Músicas")]
+    [Tooltip("Lista de músicas de fundo disponíveis.")]
+    public List<AudioClip> backgroundMusicClips = new List<AudioClip>(); // Lista de músicas
+    public AudioSource bgmAudioSource;
+
+    [Header("Efeitos Sonoros")]
+    public AudioSource sfxAudioSource;
+    [Tooltip("Lista dos clipes de áudio dos efeitos sonoros.")]
+    public List<AudioClip> soundEffectClips;
+
+    private const float PITCH_VARIATION_PERCENTAGE = 0.10f; // 10%
+
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    void Start()
+    {
+        // Exemplo: Inicia a música do menu ao carregar a cena inicial
+        PlayBackgroundMusic(0); // Assume que a música do menu é o primeiro clipe na lista
+    }
+
+    /// <summary>
+    /// Toca uma música de fundo específica da lista.
+    /// </summary>
+    /// <param name="musicIndex">O índice da música na lista 'backgroundMusicClips'.</param>
+    public void PlayBackgroundMusic(int musicIndex)
+    {
+        Debug.Log($"Tocando música de fundo: {musicIndex}");
+        if (bgmAudioSource == null || backgroundMusicClips.Count == 0)
+        {
+            Debug.LogWarning("AudioManager: bgmAudioSource não atribuído ou lista de músicas vazia.");
+            return;
+        }
+
+        if (musicIndex < 0 || musicIndex >= backgroundMusicClips.Count || backgroundMusicClips[musicIndex] == null)
+        {
+            Debug.LogWarning($"AudioManager: Índice de música inválido ({musicIndex}).");
+            return;
+        }
+
+        bgmAudioSource.clip = backgroundMusicClips[musicIndex];
+        bgmAudioSource.loop = true;
+        ApplyRandomPitch(bgmAudioSource);
+        bgmAudioSource.Play();
+    }
+
+
+
+    /// <summary>
+    /// Para a música de fundo.
+    /// </summary>
+    public void StopBackgroundMusic()
+    {
+        if (bgmAudioSource != null)
+        {
+            bgmAudioSource.Stop();
+        }
+    }
+
+    /// <summary>
+    /// Toca um efeito sonoro específico da lista.
+    /// </summary>
+    /// <param name="sfxIndex">O índice do efeito sonoro na lista 'soundEffectClips'.</param>
+    /// <param name="volumeScale">Escala de volume opcional para este efeito sonoro (padrão é 1.0f).</param>
+    public void PlaySoundEffect(int sfxIndex, float volumeScale = 1.0f)
+    {
+        if (sfxAudioSource == null)
+        {
+            Debug.LogWarning("AudioManager: sfxAudioSource não foi atribuído. Efeito sonoro não pode ser tocado.");
+            return;
+        }
+
+        if (sfxIndex < 0 || sfxIndex >= soundEffectClips.Count || soundEffectClips[sfxIndex] == null)
+        {
+            Debug.LogWarning($"AudioManager: Índice de efeito sonoro inválido ({sfxIndex}) ou clipe de áudio não atribuído.");
+            return;
+        }
+
+        ApplyRandomPitch(sfxAudioSource);
+        sfxAudioSource.PlayOneShot(soundEffectClips[sfxIndex], volumeScale);
+    }
+
+    public void PlayConfettiSound()
+    {
+        if (sfxAudioSource == null)
+        {
+            Debug.LogWarning("AudioManager: sfxAudioSource não foi atribuído. Efeito sonoro de confete não pode ser tocado.");
+            return;
+        }
+
+        AudioClip confettiClip = soundEffectClips.Find(clip => clip.name.Contains("Confetti"));
+        if (confettiClip != null)
+        {
+            ApplyRandomPitch(sfxAudioSource);
+            sfxAudioSource.PlayOneShot(confettiClip);
+        }
+        else
+        {
+            Debug.LogWarning("AudioManager: Clip de confete não encontrado na lista de efeitos sonoros.");
+        }
+    }
+
+    public void PlaySoundEffectClip(AudioClip clip, float volumeScale = 1.0f)
+  {
+    if (sfxAudioSource == null)
+    {
+      Debug.LogWarning("AudioManager: sfxAudioSource não foi atribuído. Efeito sonoro não pode ser tocado.");
+      return;
+    }
+
+    if (clip == null)
+    {
+      Debug.LogWarning("AudioManager: Clip de áudio é nulo. Efeito sonoro não pode ser tocado.");
+      return;
+    }
+
+    ApplyRandomPitch(sfxAudioSource);
+    sfxAudioSource.PlayOneShot(clip, volumeScale);
+  }
+
+    private void ApplyRandomPitch(AudioSource audioSource)
+  {
+    float randomPitch = Random.Range(1f - PITCH_VARIATION_PERCENTAGE, 1f + PITCH_VARIATION_PERCENTAGE);
+    audioSource.pitch = randomPitch;
+  }
+}
+</file>
+
+<file path="Assets/Scripts/EnemyFast.cs">
+// Assets/Scripts/EnemyFast.cs
+using UnityEngine;
+
+public class EnemyFast : Enemy
+{
+    [Header("Movimento Rápido")]
+    public float spiralFrequency = 3f; // Quão rápido ele oscila
+    public float spiralMagnitude = 0.8f; // Quão largo é o círculo da espiral
+
+    protected override void Start()
+    {
+        // Stats: Rápido e com menos vida (AGORA APLICA ANTES do modificador de dificuldade)
+
+        // Chama o Start da classe base, que vai aplicar os modificadores de dificuldade em cima desses novos valores
+        base.Start();
+    }
+    protected override void Move()
+    {
+        Vector2 directionToTarget = (target.position - transform.position).normalized;
+        Vector2 perpendicular = new Vector2(-directionToTarget.y, directionToTarget.x);
+        
+        // Usa Seno para criar um movimento circular perfeito
+        float spiralOffset = Mathf.Sin(Time.time * spiralFrequency) * spiralMagnitude;
+        
+        Vector2 finalDirection = (directionToTarget + perpendicular * spiralOffset).normalized;
+        
+        transform.Translate(finalDirection * finalSpeed * Time.deltaTime, Space.World);    }
+}
+</file>
+
 <file path="Assets/Scripts/UpgradeData.cs">
 // Assets/Scripts/UpgradeData.cs
 using UnityEngine;
@@ -825,6 +762,8 @@ public enum UpgradeType
     HealBonfire,
     PlayerMoveSpeed,
     PlayerDashCooldown,
+    PlayerAttackDamage,
+    WoodHealingAmount,
 }
 
 [CreateAssetMenu(fileName = "New Upgrade", menuName = "Game/Upgrade Data")]
@@ -866,24 +805,32 @@ public class EnemySpawner : MonoBehaviour
     public float tankEnemyChance = 0.1f;
 
     private Transform bonfire;
+    private bool isSpawning = false; // Flag para garantir que a rotina não inicie duas vezes
 
     void Start()
     {
+        // Apenas pega a referência, não inicia o spawn
         bonfire = GameObject.FindGameObjectWithTag("Bonfire").transform;
+    }
+
+    // Este método é o único ponto de entrada para começar a spawnar
+    public void StartSpawning()
+    {
+        if (isSpawning) return; // Se já estiver spawnando, não faz nada
+        isSpawning = true;
+        
+        Debug.Log("Iniciando a rotina de spawn de inimigos...");
+        StartCoroutine(SpawnRoutine());
     }
 
     private IEnumerator SpawnRoutine()
     {
-        Debug.Log("Iniciando o spawn de inimigos...");
-        // Loop infinito que controla o spawn
-        while (true)
+        while (isSpawning)
         {
-            // Calcula a taxa de spawn atual
+            // Calcula a taxa de spawn atual usando o DifficultyManager
             float currentSpawnRate = baseSpawnRate * DifficultyManager.Instance.SpawnRateMultiplier;
-
-            // Calcula o tempo de espera até o próximo spawn
             float waitTime = 1f / currentSpawnRate;
-
+            
             yield return new WaitForSeconds(waitTime);
 
             SpawnEnemy();
@@ -895,29 +842,63 @@ public class EnemySpawner : MonoBehaviour
         GameObject prefabToSpawn;
         float randomValue = Random.value;
 
-        if (randomValue < fastEnemyChance)
-        {
-            prefabToSpawn = fastEnemyPrefab;
-        }
-        else if (randomValue < fastEnemyChance + tankEnemyChance)
-        {
-            prefabToSpawn = tankEnemyPrefab;
-        }
-        else
-        {
-            prefabToSpawn = commonEnemyPrefab;
-        }
+        if (randomValue < fastEnemyChance) prefabToSpawn = fastEnemyPrefab;
+        else if (randomValue < fastEnemyChance + tankEnemyChance) prefabToSpawn = tankEnemyPrefab;
+        else prefabToSpawn = commonEnemyPrefab;
         
         if (prefabToSpawn == null) return;
 
         Vector2 spawnPos = (Vector2)bonfire.position + Random.insideUnitCircle.normalized * spawnRadius;
         Instantiate(prefabToSpawn, spawnPos, Quaternion.identity);
     }
-    public void StartSpawning()
+}
+</file>
+
+<file path="Assets/Scripts/EnemyTank.cs">
+// Assets/Scripts/EnemyTank.cs
+using UnityEngine;
+
+public class EnemyTank : Enemy
+{
+    protected override void Start()
     {
-        StartCoroutine(SpawnRoutine());
+        // Stats: Lento e com mais vida
+  
+        // Chama o Start da classe base, que vai aplicar os modificadores de dificuldade
+        base.Start();
     }
 
+    // Movimento simples e direto
+    protected override void Move()
+    {
+        transform.position = Vector2.MoveTowards(transform.position, target.position, finalSpeed * Time.deltaTime);    }
+
+    // Sobrescreve o método Die para dropar 3 lenhas
+    protected override void Die()
+    {
+        GameManager.Instance.SpawnBlueExplosion(transform.position);
+
+        if (fireDeath)
+        {
+            GameManager.Instance.SpawnOrangeExplosion(transform.position);
+            Destroy(gameObject);
+            return;
+        }
+
+        // Lógica de drop especial: sempre dropa 3 lenhas
+        if (woodDropPrefab != null)
+        {
+            AudioManager.Instance.PlaySoundEffect(0);
+
+            for (int i = 0; i < 2; i++)
+            {
+                // Pequeno offset aleatório para não spawnar todas no mesmo lugar
+                Vector2 spawnPos = (Vector2)transform.position + Random.insideUnitCircle * 0.5f;
+                Instantiate(woodDropPrefab, spawnPos, Quaternion.identity);
+            }
+        }
+        Destroy(gameObject);
+    }
 }
 </file>
 
@@ -939,15 +920,18 @@ public class UpgradeUIManager : MonoBehaviour
     public void ShowUpgradeOptions(List<UpgradeData> upgrades)
     {
         upgradePanel.SetActive(true);
+        DisableButtons();
         GetComponent<UIJuice>().PlayAnimation();
 
 
+
+        Debug.Log($"Mostrando {upgrades.Count} opções de upgrade.");
         for (int i = 0; i < upgradeButtons.Count; i++)
         {
             if (i < upgrades.Count)
             {
                 // Ativa e configura o botão
-                upgradeButtons[i].gameObject.SetActive(true);
+                // upgradeButtons[i].gameObject.SetActive(true);
                 upgradeNameTexts[i].text = upgrades[i].upgradeName;
                 upgradeDescriptionTexts[i].text = upgrades[i].description;
                 upgradeIcons[i].sprite = upgrades[i].icon;
@@ -955,7 +939,9 @@ public class UpgradeUIManager : MonoBehaviour
                 // Limpa listeners antigos e adiciona o novo
                 upgradeButtons[i].onClick.RemoveAllListeners();
                 var selectedUpgrade = upgrades[i]; // Variável local para evitar problemas de closure
+                upgradeButtons[i].onClick.AddListener(() => HidePanel());
                 upgradeButtons[i].onClick.AddListener(() => GameManager.Instance.ApplyUpgrade(selectedUpgrade));
+
             }
             else
             {
@@ -968,314 +954,26 @@ public class UpgradeUIManager : MonoBehaviour
     public void HidePanel()
     {
         GetComponent<UIJuice>().PlayReverseAnimation();
-    }
-}
-</file>
-
-<file path="Assets/Scripts/Enemy.cs">
-// Assets/Scripts/Enemy.cs
-using UnityEngine;
-using DG.Tweening;
-
-public abstract class Enemy : MonoBehaviour
-{
-    [Header("Atributos Base (antes da dificuldade)")]
-    public float baseSpeed = 3f;
-    public int baseMaxHealth = 2;
-    public int dano = 4;
-    protected int currentHealth;
-
-    [Header("Alvo e Drops")]
-    public GameObject woodDropPrefab;
-    [Range(0f, 1f)]
-    public float woodDropChance = 0.5f;
-
-    // Variáveis internas
-    protected float finalSpeed;
-    protected Transform target;
-    protected SpriteRenderer sr;
-    protected bool fireDeath = false;
-
-    protected virtual void Start()
-    {
-        // Aplica os multiplicadores de dificuldade no momento do spawn
-        ApplyDifficultyModifiers();
-        
-        currentHealth = baseMaxHealth; // A vida atual começa no máximo
-                                       // Pega o sprite renderer do filho
-        sr = GetComponentInChildren<SpriteRenderer>();
-
-        GameObject bonfireObject = GameObject.FindGameObjectWithTag("Bonfire");
-        if (bonfireObject != null)
+        // disable buttons and remove listeners
+        foreach (var button in upgradeButtons)
         {
-            target = bonfireObject.transform;
+            button.interactable = false;
+            button.onClick.RemoveAllListeners();
         }
     }
-
-    // NOVO: Método que aplica a dificuldade
-    protected virtual void ApplyDifficultyModifiers()
+    public void EnableButtons()
     {
-        // Pega os multiplicadores do DifficultyManager
-        finalSpeed = baseSpeed * DifficultyManager.Instance.EnemySpeedMultiplier;
-        
-        // Multiplica a vida base pelo modificador e arredonda para o inteiro mais próximo
-        baseMaxHealth = Mathf.RoundToInt(baseMaxHealth * DifficultyManager.Instance.EnemyHealthMultiplier);
-    }
-
-    private void Update()
-    {
-        if (target != null)
+        foreach (var button in upgradeButtons)
         {
-            Move();
+            button.interactable = true;
         }
     }
-
-    protected abstract void Move();
-
-    public void TakeDamage(int damage)
+        public void DisableButtons()
     {
-        AudioManager.Instance.PlaySoundEffect(2);
-
-        currentHealth -= damage;
-        sr.DOColor(Color.white, 0.1f).SetLoops(2, LoopType.Yoyo);
-
-        if (currentHealth <= 0)
+        foreach (var button in upgradeButtons)
         {
-            Die();
+            button.interactable = false;
         }
-    }
-
-    protected virtual void Die()
-    {
-
-        GameManager.Instance.SpawnBlueExplosion(transform.position);
-
-        if (fireDeath)
-        {
-                            AudioManager.Instance.PlaySoundEffect(6);
-
-            GameManager.Instance.SpawnOrangeExplosion(transform.position);
-            Destroy(gameObject);
-            return;
-        }
-
-        if (woodDropPrefab != null)
-        {
-            float totalDropChance = woodDropChance + GameManager.Instance.bonusWoodDropChance;
-            if (Random.value < totalDropChance)
-            {
-                AudioManager.Instance.PlaySoundEffect(0);
-
-                Instantiate(woodDropPrefab, transform.position, Quaternion.identity);
-            }
-        }
-        Destroy(gameObject);
-    }
-
-    protected virtual void OnTriggerEnter2D(Collider2D collision)
-    {
-        if (collision.CompareTag("Bonfire"))
-        {
-            collision.GetComponent<Bonfire>().ReceberDano(dano);
-            fireDeath = true;
-            Die();
-        }
-    }
-}
-</file>
-
-<file path="Assets/Scripts/Bonfire.cs">
-// Assets/Scripts/Bonfire.cs
-using UnityEngine;
-using UnityEngine.UI; // Necessário para controlar o Slider
-
-public class Bonfire : MonoBehaviour
-{
-    [Header("Health & Burning")]
-    [Tooltip("Vida máxima atual da fogueira.")]
-    public float maxHealth = 100f;
-    [Tooltip("Vida atual da fogueira.")]
-    public float currentHealth;
-
-    [Tooltip("A taxa de queima base quando a fogueira está com vida baixa.")]
-    public float baseBurnRate = 0.5f; // Perda de energia por segundo
-    [Tooltip("Multiplicador da taxa de queima quando a fogueira está com vida máxima.")]
-    public float maxHealthBurnMultiplier = 2.5f; // A 100% de vida, queima 2.5x mais rápido
-    
-    // Curva para um controle suave da taxa de queima
-    [Tooltip("Controla como a taxa de queima aumenta com a vida. X=0 (0% vida), Y=1 (taxa base). X=1 (100% vida), Y=2.5 (taxa máxima).")]
-    public AnimationCurve burnRateCurve = AnimationCurve.EaseInOut(0, 1, 1, 15f);
-
-    [Header("Referências de UI e VFX")]
-    [Tooltip("O Slider da UI que representa a vida da fogueira.")]
-    public Slider healthSlider;
-    [Tooltip("O sistema de partículas principal da fogueira.")]
-    public ParticleSystem fireParticleSystem;
-    [Tooltip("O componente de luz da fogueira.")]
-    public LightFlicker bonfireLight;
-
-    // --- Variáveis Privadas ---
-    private float initialParticleGravity;
-    private float initialParticleStartSize;
-    private float initialParticleStartSpeed;
-    private float initialParticleEmissionRate;
-
-    void Start()
-    {
-        currentHealth = maxHealth;
-
-        // Validações iniciais
-        if (bonfireLight == null)
-        {
-            Debug.LogError("Referência para LightFlicker não definida no Bonfire!");
-        }
-        if (fireParticleSystem == null)
-        {
-            Debug.LogError("Referência para ParticleSystem não definida no Bonfire!");
-        }
-        else
-        {
-            // Guarda os valores iniciais do sistema de partículas para referência
-            var mainModule = fireParticleSystem.main;
-            initialParticleGravity = mainModule.gravityModifier.constant;
-            initialParticleStartSize = mainModule.startSize.constant;
-            initialParticleStartSpeed = mainModule.startSpeed.constant;
-            initialParticleEmissionRate = fireParticleSystem.emission.rateOverTime.constant;
-        }
-
-        if (healthSlider == null)
-        {
-            Debug.LogError("Referência para o Health Slider não definida no Bonfire!");
-        }
-        
-        // Configura o slider com os valores iniciais
-        UpdateHealthSlider();
-    }
-
-    void Update()
-    {
-        // Calcula a porcentagem de vida atual (0.0 a 1.0)
-        float healthPercent = currentHealth / maxHealth;
-        
-        // Calcula a taxa de queima atual baseada na curva
-        float currentBurnMultiplier = burnRateCurve.Evaluate(healthPercent);
-        float currentBurnRate = baseBurnRate * currentBurnMultiplier;
-
-        // Perde vida com o tempo
-        currentHealth -= currentBurnRate * Time.deltaTime;
-        
-        // Garante que a vida não fique negativa
-        currentHealth = Mathf.Max(currentHealth, 0);
-
-        // Atualiza todos os sistemas dependentes
-        UpdateFireVisuals(healthPercent);
-        UpdateHealthSlider();
-
-        // Condição de derrota (Game Over)
-        if (currentHealth <= 0)
-        {
-            GameManager.Instance.LoseGame(); // Chama o método de Game Over do GameManager
-            Debug.Log("A FOGUEIRA APAGOU! GAME OVER.");
-            // Lógica de Game Over...
-            // Time.timeScale = 0f;
-        }
-    }
-
-    void OnTriggerEnter2D(Collider2D other)
-    {
-        if (other.CompareTag("Lenha"))
-        {
-            AudioManager.Instance.PlaySoundEffect(6);
-
-            // Aqui você pode adicionar lógica para coletar a lenha, como:
-            GameManager.Instance.AddXp(1);
-            Destroy(other.gameObject); // Remove a lenha do jogo
-            currentHealth += 10; // Por exemplo, adiciona 10 de vida à fogueira
-            currentHealth = Mathf.Min(currentHealth, maxHealth); // Garante que não ultrapasse o máximo
-            Debug.Log("Lenha coletada! Vida da fogueira aumentada.");
-            GameManager.Instance.SpawnOrangeExplosion(transform.position); // Efeito visual de coleta
-        }
-          
-
-    }
-
-    /// <summary>
-    /// Atualiza o slider de vida da UI.
-    /// </summary>
-    private void UpdateHealthSlider()
-    {
-        if (healthSlider == null) return;
-
-        healthSlider.maxValue = maxHealth;
-        healthSlider.value = currentHealth;
-    }
-
-    /// <summary>
-    /// Atualiza os efeitos visuais (partículas e luz) baseados na porcentagem de vida.
-    /// </summary>
-    private void UpdateFireVisuals(float healthPercent)
-    {
-        // --- Atualiza as Partículas ---
-        if (fireParticleSystem != null)
-        {
-            var main = fireParticleSystem.main;
-
-            // Quanto mais vida, menos gravidade (fogo mais alto e "selvagem")
-            main.gravityModifier = Mathf.Lerp(initialParticleGravity * 0.5f, initialParticleGravity * 3, healthPercent);
-
-            // Quanto mais vida, maior o tamanho inicial das partículas
-            main.startSize = Mathf.Lerp(initialParticleStartSize * 0.5f, initialParticleStartSize * 2f, healthPercent);
-
-            // Quanto mais vida, mais rápido as partículas sobem
-            main.startSpeed = Mathf.Lerp(initialParticleStartSpeed * 0.75f, initialParticleStartSpeed * 5f, healthPercent);
-
-            var emission = fireParticleSystem.emission;
-            emission.rateOverTime = Mathf.Lerp(initialParticleEmissionRate * 0.5f, initialParticleEmissionRate * 3f, healthPercent);
-        }
-
-        // --- Atualiza a Luz ---
-        if (bonfireLight != null)
-        {
-            // Mapeia a vida para a intensidade e raio da luz
-            bonfireLight.UpdateLightStrength(healthPercent);
-        }
-    }
-
-    /// <summary>
-    /// Adiciona vida à fogueira (chamado ao entregar lenha, por exemplo).
-    /// </summary>
-    public void AddHealth(float amount)
-    {
-        currentHealth += amount;
-        currentHealth = Mathf.Min(currentHealth, maxHealth); // Garante que não ultrapasse o máximo
-        GameManager.Instance.SpawnOrangeExplosionOnBonfire(); // Feedback visual
-    }
-
-    public void ReceberDano(int dano)
-    {
-        currentHealth -= dano;
-    }
-
-    // --- MÉTODOS PARA UPGRADES ---
-    public void IncreaseMaxHealth(float multiplier)
-    {
-        float oldMaxHealth = maxHealth;
-        maxHealth *= multiplier;
-        float healthGained = maxHealth - oldMaxHealth;
-        currentHealth += healthGained;
-        currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
-        UpdateHealthSlider();
-        
-        // Avisa o componente de luz que seus valores máximos também aumentaram.
-        if (bonfireLight != null)
-        {
-            bonfireLight.UpgradeLightMaximums(multiplier);
-        }
-    }
-
-    public void HealToFull()
-    {
-        currentHealth = maxHealth;
     }
 }
 </file>
@@ -1313,7 +1011,7 @@ public class PlayerController : MonoBehaviour
     [Header("Ataque Melee Automático")]
     public float attackRadius = 2.5f;   // O alcance do ataque
     public float attackCooldown = 1f;   // Ataca a cada 1 segundo
-    public int attackDamage = 1;        // Dano do ataque
+    public float  attackDamage = 1;        // Dano do ataque
     public LayerMask enemyLayer;        // Defina no Inspector qual camada é a dos inimigos
     public GameObject slashEffectPrefab;        // Efeito visual opcional para o ataque
     private float lastAttackTime = -Mathf.Infinity; // Timer para o ataque
@@ -1453,7 +1151,32 @@ public class PlayerController : MonoBehaviour
             Destroy(collision.gameObject);
             ThrowWood(); // Lança a lenha automaticamente ao coletar
         }
+        if (collision.CompareTag("Bonfire"))
+        {
+            ResetDashCooldown(); // Reseta o cooldown do dash ao entrar na fogueira
+        }
     }
+
+    private void OnTriggerStay2D(Collider2D collision)
+    {
+        if (collision.CompareTag("Lenha"))
+        {
+            ThrownWood woodScript = collision.GetComponent<ThrownWood>();
+
+            // Se a lenha não existir ou não for coletável, ignora.
+            // O "woodScript == null" é para lenhas que podem estar no chão sem esse script.
+            if (woodScript != null && !woodScript.isCollectible)
+            {
+                return;
+            }
+
+            // Se passar, a lenha é coletável.
+            lenhaNoInventario++;
+            Destroy(collision.gameObject);
+            ThrowWood(); // Lança a lenha automaticamente ao coletar
+        }
+    }
+
     // NOVO: Visualizar o raio de ataque no Editor da Unity
     private void OnDrawGizmosSelected()
     {
@@ -1462,44 +1185,366 @@ public class PlayerController : MonoBehaviour
     }
     public void ThrowWood()
     {
+
+        lenhaNoInventario--;
+        // AudioManager.Instance.PlaySoundEffect(SEU_INDICE_DE_ARREMESSO_AQUI);
+
+        GameObject wood = Instantiate(woodPrefab, transform.position, Quaternion.identity);
+        ThrownWood thrownWoodScript = wood.GetComponent<ThrownWood>();
+
+        if (thrownWoodScript != null)
+        {
+            // Inicia a animação de arremesso em direção à fogueira
+            thrownWoodScript.Launch(bonfireTransform.position, throwDuration);
+        }
+    }
+
+    public void ResetDashCooldown()
+    {
+        lastDashTime = -Mathf.Infinity; // Reseta o cooldown do dash
+    }
+
+}
+</file>
+
+<file path="Assets/Scripts/Bonfire.cs">
+// Assets/Scripts/Bonfire.cs
+using UnityEngine;
+using UnityEngine.UI; // Necessário para controlar o Slider
+
+public class Bonfire : MonoBehaviour
+{
+    [Header("Health & Burning")]
+    [Tooltip("Vida máxima atual da fogueira.")]
+    public float maxHealth = 100f;
+    [Tooltip("Vida atual da fogueira.")]
+    public float currentHealth;
+
+    [Tooltip("A taxa de queima base quando a fogueira está com vida baixa.")]
+    public float baseBurnRate = 0.5f; // Perda de energia por segundo
+    [Tooltip("Multiplicador da taxa de queima quando a fogueira está com vida máxima.")]
+    public float maxHealthBurnMultiplier = 2.5f; // A 100% de vida, queima 2.5x mais rápido
+    
+    public float logHealingAmount = 10f; // Quanto de vida a fogueira ganha ao coletar lenha
+    // Curva para um controle suave da taxa de queima
+    [Tooltip("Controla como a taxa de queima aumenta com a vida. X=0 (0% vida), Y=1 (taxa base). X=1 (100% vida), Y=2.5 (taxa máxima).")]
+    public AnimationCurve burnRateCurve = AnimationCurve.EaseInOut(0, 1, 1, 15f);
+
+    [Header("Referências de UI e VFX")]
+    [Tooltip("O Slider da UI que representa a vida da fogueira.")]
+    public Slider healthSlider;
+    [Tooltip("O sistema de partículas principal da fogueira.")]
+    public ParticleSystem fireParticleSystem;
+    [Tooltip("O componente de luz da fogueira.")]
+    public LightFlicker bonfireLight;
+
+    // --- Variáveis Privadas ---
+    private float initialParticleGravity;
+    private float initialParticleStartSize;
+    private float initialParticleStartSpeed;
+    private float initialParticleEmissionRate;
+
+    void Start()
+    {
+        currentHealth = maxHealth;
+
+        // Validações iniciais
+        if (bonfireLight == null)
+        {
+            Debug.LogError("Referência para LightFlicker não definida no Bonfire!");
+        }
+        if (fireParticleSystem == null)
+        {
+            Debug.LogError("Referência para ParticleSystem não definida no Bonfire!");
+        }
+        else
+        {
+            // Guarda os valores iniciais do sistema de partículas para referência
+            var mainModule = fireParticleSystem.main;
+            initialParticleGravity = mainModule.gravityModifier.constant;
+            initialParticleStartSize = mainModule.startSize.constant;
+            initialParticleStartSpeed = mainModule.startSpeed.constant;
+            initialParticleEmissionRate = fireParticleSystem.emission.rateOverTime.constant;
+        }
+
+        if (healthSlider == null)
+        {
+            Debug.LogError("Referência para o Health Slider não definida no Bonfire!");
+        }
         
-            lenhaNoInventario--;
-            // AudioManager.Instance.PlaySoundEffect(SEU_INDICE_DE_ARREMESSO_AQUI);
+        // Configura o slider com os valores iniciais
+        UpdateHealthSlider();
+    }
 
-            GameObject wood = Instantiate(woodPrefab, transform.position, Quaternion.identity);
-            ThrownWood thrownWoodScript = wood.GetComponent<ThrownWood>();
+    void Update()
+    {
+        // Calcula a porcentagem de vida atual (0.0 a 1.0)
+        float healthPercent = currentHealth / maxHealth;
+        
+        // Calcula a taxa de queima atual baseada na curva
+        float currentBurnMultiplier = burnRateCurve.Evaluate(healthPercent);
+        float currentBurnRate = baseBurnRate * currentBurnMultiplier;
 
-            if (thrownWoodScript != null)
+        // Perde vida com o tempo
+        currentHealth -= currentBurnRate * Time.deltaTime;
+        
+        // Garante que a vida não fique negativa
+        currentHealth = Mathf.Max(currentHealth, 0);
+
+        // Atualiza todos os sistemas dependentes
+        UpdateFireVisuals(healthPercent);
+        UpdateHealthSlider();
+
+        // Condição de derrota (Game Over)
+        if (currentHealth <= 0)
+        {
+            GameManager.Instance.LoseGame(); // Chama o método de Game Over do GameManager
+            Debug.Log("A FOGUEIRA APAGOU! GAME OVER.");
+            // Lógica de Game Over...
+        }
+    }
+
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.CompareTag("Lenha"))
+        {
+            AudioManager.Instance.PlaySoundEffect(6);
+
+            // Aqui você pode adicionar lógica para coletar a lenha, como:
+            GameManager.Instance.AddXp(1);
+            Destroy(other.gameObject); // Remove a lenha do jogo
+            currentHealth += logHealingAmount; // Por exemplo, adiciona 10 de vida à fogueira
+            currentHealth = Mathf.Min(currentHealth, maxHealth); // Garante que não ultrapasse o máximo
+            GameManager.Instance.SpawnOrangeExplosion(transform.position); // Efeito visual de coleta
+        }
+          
+
+    }
+
+    /// <summary>
+    /// Atualiza o slider de vida da UI.
+    /// </summary>
+    private void UpdateHealthSlider()
+    {
+        if (healthSlider == null) return;
+
+        healthSlider.maxValue = maxHealth;
+        healthSlider.value = currentHealth;
+    }
+
+    /// <summary>
+    /// Atualiza os efeitos visuais (partículas e luz) baseados na porcentagem de vida.
+    /// </summary>
+    private void UpdateFireVisuals(float healthPercent)
+    {
+        // --- Atualiza as Partículas ---
+        if (fireParticleSystem != null)
+        {
+            var main = fireParticleSystem.main;
+
+            // Quanto mais vida, menos gravidade (fogo mais alto e "selvagem")
+            main.gravityModifier = Mathf.Lerp(initialParticleGravity * 0.5f, initialParticleGravity * 3, healthPercent);
+
+            // Quanto mais vida, maior o tamanho inicial das partículas
+            main.startSize = Mathf.Lerp(initialParticleStartSize * 0.5f, initialParticleStartSize * 2f, healthPercent);
+
+            // Quanto mais vida, mais rápido as partículas sobem
+            main.startSpeed = Mathf.Lerp(initialParticleStartSpeed * 0.75f, initialParticleStartSpeed * 5f, healthPercent);
+
+            var emission = fireParticleSystem.emission;
+            emission.rateOverTime = Mathf.Lerp(initialParticleEmissionRate * 0.5f, initialParticleEmissionRate * 3f, healthPercent);
+        }
+
+        // --- Atualiza a Luz ---
+        if (bonfireLight != null)
+        {
+            // Mapeia a vida para a intensidade e raio da luz
+            bonfireLight.UpdateLightStrength(healthPercent);
+        }
+    }
+
+    /// <summary>
+    /// Adiciona vida à fogueira (chamado ao entregar lenha, por exemplo).
+    /// </summary>
+    public void AddHealth(float amount)
+    {
+        currentHealth += amount;
+        currentHealth = Mathf.Min(currentHealth, maxHealth); // Garante que não ultrapasse o máximo
+        GameManager.Instance.SpawnOrangeExplosionOnBonfire(); // Feedback visual
+    }
+
+    public void ReceberDano(float dano)
+    {
+        currentHealth -= dano;
+    }
+
+    // --- MÉTODOS PARA UPGRADES ---
+    public void IncreaseMaxHealth(float multiplier)
+    {
+        float oldMaxHealth = maxHealth;
+        maxHealth *= multiplier;
+        float healthGained = maxHealth - oldMaxHealth;
+        currentHealth += healthGained;
+        currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
+        UpdateHealthSlider();
+        
+        // Avisa o componente de luz que seus valores máximos também aumentaram.
+        if (bonfireLight != null)
+        {
+            bonfireLight.UpgradeLightMaximums(multiplier);
+        }
+    }
+
+    public void HealToFull()
+    {
+        currentHealth = maxHealth;
+    }
+}
+</file>
+
+<file path="Assets/Scripts/Enemy.cs">
+// Assets/Scripts/Enemy.cs
+using UnityEngine;
+using DG.Tweening;
+
+public abstract class Enemy : MonoBehaviour
+{
+    [Header("Atributos Base (antes da dificuldade)")]
+    public float baseSpeed = 3f;
+    public float baseMaxHealth = 2;
+    public float dano = 4;
+    protected float currentHealth;
+
+    [Header("Alvo e Drops")]
+    public GameObject woodDropPrefab;
+    [Range(0f, 1f)]
+    public float woodDropChance = 0.5f;
+
+    // Variáveis floaternas
+    protected float finalSpeed;
+    protected Transform target;
+    protected SpriteRenderer sr;
+    protected bool fireDeath = false;
+
+    protected virtual void Start()
+    {
+        // Aplica os multiplicadores de dificuldade no momento do spawn
+        ApplyDifficultyModifiers();
+        
+        currentHealth = baseMaxHealth; // A vida atual começa no máximo
+                                       // Pega o sprite renderer do filho
+        sr = GetComponentInChildren<SpriteRenderer>();
+
+        GameObject bonfireObject = GameObject.FindGameObjectWithTag("Bonfire");
+        if (bonfireObject != null)
+        {
+            target = bonfireObject.transform;
+        }
+    }
+
+    // NOVO: Método que aplica a dificuldade
+    protected virtual void ApplyDifficultyModifiers()
+    {
+        // Pega os multiplicadores do DifficultyManager
+        finalSpeed = baseSpeed * DifficultyManager.Instance.EnemySpeedMultiplier;
+        
+        // Multiplica a vida base pelo modificador e arredonda para o inteiro mais próximo
+        baseMaxHealth = Mathf.RoundToInt(baseMaxHealth * DifficultyManager.Instance.EnemyHealthMultiplier);
+    }
+
+    private void Update()
+    {
+        if (target != null)
+        {
+            Move();
+        }
+    }
+
+    protected abstract void Move();
+
+    public void TakeDamage(float damage)
+    {
+        AudioManager.Instance.PlaySoundEffect(2);
+
+        currentHealth -= damage;
+        sr.DOColor(Color.white, 0.1f).SetLoops(2, LoopType.Yoyo);
+
+        if (currentHealth <= 0)
+        {
+            Die();
+        }
+    }
+
+    protected virtual void Die()
+    {
+
+        GameManager.Instance.SpawnBlueExplosion(transform.position);
+
+        if (fireDeath)
+        {
+            AudioManager.Instance.PlaySoundEffect(6);
+
+            GameManager.Instance.SpawnOrangeExplosion(transform.position);
+            Destroy(gameObject);
+            return;
+        }
+
+        if (woodDropPrefab != null)
+        {
+            float totalDropChance = woodDropChance * GameManager.Instance.woodDropRate;
+            if (Random.value < totalDropChance)
             {
-                // Inicia a animação de arremesso em direção à fogueira
-                thrownWoodScript.Launch(bonfireTransform.position, throwDuration);
+                AudioManager.Instance.PlaySoundEffect(0);
+
+                Instantiate(woodDropPrefab, transform.position, Quaternion.identity);
             }
+        }
+        Destroy(gameObject);
+    }
+
+    protected virtual void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.CompareTag("Bonfire"))
+        {
+            collision.GetComponent<Bonfire>().ReceberDano(dano);
+            fireDeath = true;
+            Die();
+        }
     }
 }
 </file>
 
 <file path="Assets/Scripts/GameManager.cs">
 // Assets/Scripts/GameManager.cs
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.VFX;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
+    private bool isGameRunning = false;
+    public float timeToWin = 300, timeToWinFirst = 120; // Tempo para vencer em segundos (2 minutos)
     public static GameManager Instance { get; private set; }
 
     [Header("Referências")]
     public PlayerController player;
     public Bonfire bonfire;
-    public UpgradeUIManager upgradeUI; // Vamos criar este script a seguir
+    public UpgradeUIManager upgradeUI;
+    public EnemySpawner enemySpawner; // Adicione a referência ao spawner
+
+    [Header("UI")]
+    public GameObject losePanel;
+    public GameObject firstWinPanel, winPanel; // Opcional: Um painel de vitória
+    public GameObject startPanel; // Opcional: Um painel com um botão "Iniciar"
 
     [Header("Controle de Nível")]
     public int playerLevel = 1;
     private int currentXp = 0;
     // Custo de XP para cada nível (Nível 1 custa 1, Nível 2 custa 3, etc.)
-    public int[] xpPerLevel = { 1, 3, 5, 8, 9, 9, 9, 9, 9, 20 }; // Curva até o Nível 10
+    public int[] xpPerLevel = { 1, 2, 3, 4, 5, 7, 9, 30, 38, 47 }; 
 
     [Header("Upgrades")]
     [Tooltip("Lista com todos os upgrades possíveis no jogo.")]
@@ -1508,16 +1553,14 @@ public class GameManager : MonoBehaviour
 
     public ParticleSystem confettiEffect, orangeExplosionEffect, blueExplosionEffect;
     // Stats Globais Modificáveis
-    public float bonusWoodDropChance = 0f;
-
-    public GameObject losePanel;
+    public float woodDropRate = 1f;
 
     private void Awake()
     {
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject);
+            // DontDestroyOnLoad(gameObject); // Pode ser útil, mas cuidado ao reiniciar a cena
         }
         else
         {
@@ -1527,11 +1570,47 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
-        // Reseta a lista de upgrades disponíveis no início
-        availableUpgrades = new List<UpgradeData>(allUpgrades);
-        Invoke(nameof(LoseGame), 180);
+        // Garante que tudo esteja pausado ou inativo no começo
+        losePanel.SetActive(false);
+        if (winPanel != null) winPanel.SetActive(false);
+        
+        // Se tiver um painel inicial, mostre-o. Senão, inicie o jogo direto.
+        Time.timeScale = 0f; // Pausa o jogo até o jogador clicar em "Start"
     }
 
+    // Este método será chamado pelo botão "Start" da sua UI
+    public void StartGame()
+    {
+        if (isGameRunning) return; // Evita iniciar o jogo mais de uma vez
+        isGameRunning = true;
+        Time.timeScale = 1f;
+        AudioManager.Instance.PlayBackgroundMusic(1); // Toca a música do menu ou inicial
+        // Inicia os sistemas do jogo
+        availableUpgrades = new List<UpgradeData>(allUpgrades);
+
+        if (enemySpawner == null)
+        {
+            Debug.LogError("Referência ao EnemySpawner não foi definida no GameManager!");
+            return;
+        }
+        enemySpawner.StartSpawning();
+
+        // Inicia o timer de vitória (2 minutos)
+        StartCoroutine(VictoryTimer());
+        StartCoroutine(SecondPartTimer());
+    }
+
+    private IEnumerator VictoryTimer()
+    {
+        yield return new WaitForSeconds(timeToWin); // Espera 2 minutos
+        WinGame();
+    }
+
+        private IEnumerator SecondPartTimer()
+    {
+        yield return new WaitForSeconds(timeToWinFirst); // Espera 2 minutos
+        FirstPartWin();
+    }
 
     public void AddXp(int amount)
     {
@@ -1578,7 +1657,7 @@ public class GameManager : MonoBehaviour
         switch (upgrade.type)
         {
             case UpgradeType.WoodDropChance:
-                bonusWoodDropChance += upgrade.value; // Acumula a chance bônus
+                woodDropRate *= upgrade.value; // Acumula a chance bônus
                 break;
             case UpgradeType.PlayerAttackSpeed:
                 player.attackCooldown *= (1f / upgrade.value); // Ex: 1.25x speed -> cooldown * (1/1.25)
@@ -1600,6 +1679,12 @@ public class GameManager : MonoBehaviour
                 break;
             case UpgradeType.PlayerDashCooldown:
                 player.dashCooldown *= (1f / upgrade.value); // Ex: 0.8x cooldown -> cooldown * (1/0.8)
+                break;
+            case UpgradeType.PlayerAttackDamage:
+                player.attackDamage *= upgrade.value; // Ex: 1.5x damage
+                break;
+            case UpgradeType.WoodHealingAmount:
+                bonfire.logHealingAmount += upgrade.value; // Aumenta a quantidade de vida que a fogueira recebe ao coletar lenha
                 break;
         }
 
@@ -1649,25 +1734,51 @@ public class GameManager : MonoBehaviour
         }
     }
 
-
-    public void QuitGame()
+    public void WinGame()
     {
-        Debug.Log("Saindo do jogo...");
-        Application.Quit();
+        Debug.Log("Você sobreviveu! Vitória!");
+        if (winPanel != null) winPanel.SetActive(true);
+        Time.timeScale = 0f;
+        DifficultyManager.Instance.StopTimer();
     }
 
-    public void RestartGame()
+    public void FirstPartWin()
     {
-        Debug.Log("Reiniciando o jogo...");
-        // Aqui você pode adicionar lógica para reiniciar o jogo, como recarregar a cena atual
-        UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
+        Debug.Log("Você sobreviveu! Vitória!");
+        if (firstWinPanel != null) firstWinPanel.SetActive(true);
+        confettiEffect.Play();
+        Time.timeScale = 0f;
+        DifficultyManager.Instance.StopTimer();
     }
+
+    public void StartSecondPart()
+    {
+        Debug.Log("Iniciando a segunda parte do jogo...");
+        Time.timeScale = 1f; // Retorna o tempo ao normal
+        isGameRunning = true;
+
+        // Reinicia o tempo de jogo
+        DifficultyManager.Instance.ResetTimer();
+
+    }
+
     public void LoseGame()
     {
         Debug.Log("Você perdeu! Exibindo painel de derrota.");
         losePanel.SetActive(true);
-        // losePanel.GetComponent<UIJuice>().PlayAnimation();
-        // Time.timeScale = 0f; // Pausa o jogo
+        Time.timeScale = 0f;
+        DifficultyManager.Instance.StopTimer();
+    }
+
+    public void RestartGame()
+    {
+        Time.timeScale = 1f; // Garante que o tempo volte ao normal antes de recarregar
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+    public void QuitGame()
+    {
+        Application.Quit();
     }
 }
 </file>

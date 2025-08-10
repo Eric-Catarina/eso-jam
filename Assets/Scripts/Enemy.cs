@@ -15,7 +15,7 @@ public abstract class Enemy : MonoBehaviour
     [Range(0f, 1f)]
     public float woodDropChance = 0.5f;
 
-    // Variáveis floaternas
+    // Variáveis internas
     protected float finalSpeed;
     protected Transform target;
     protected SpriteRenderer sr;
@@ -23,11 +23,8 @@ public abstract class Enemy : MonoBehaviour
 
     protected virtual void Start()
     {
-        // Aplica os multiplicadores de dificuldade no momento do spawn
         ApplyDifficultyModifiers();
-        
-        currentHealth = baseMaxHealth; // A vida atual começa no máximo
-                                       // Pega o sprite renderer do filho
+        currentHealth = baseMaxHealth;
         sr = GetComponentInChildren<SpriteRenderer>();
 
         GameObject bonfireObject = GameObject.FindGameObjectWithTag("Bonfire");
@@ -37,13 +34,9 @@ public abstract class Enemy : MonoBehaviour
         }
     }
 
-    // NOVO: Método que aplica a dificuldade
     protected virtual void ApplyDifficultyModifiers()
     {
-        // Pega os multiplicadores do DifficultyManager
         finalSpeed = baseSpeed * DifficultyManager.Instance.EnemySpeedMultiplier;
-        
-        // Multiplica a vida base pelo modificador e arredonda para o inteiro mais próximo
         baseMaxHealth = Mathf.RoundToInt(baseMaxHealth * DifficultyManager.Instance.EnemyHealthMultiplier);
     }
 
@@ -60,7 +53,6 @@ public abstract class Enemy : MonoBehaviour
     public void TakeDamage(float damage)
     {
         AudioManager.Instance.PlaySoundEffect(2);
-
         currentHealth -= damage;
         sr.DOColor(Color.white, 0.1f).SetLoops(2, LoopType.Yoyo);
 
@@ -72,13 +64,14 @@ public abstract class Enemy : MonoBehaviour
 
     protected virtual void Die()
     {
-
+        // << NOVO: Notifica o GameManager que um inimigo morreu >>
+        GameManager.Instance.OnEnemyKilled();
+        
         GameManager.Instance.SpawnBlueExplosion(transform.position);
 
         if (fireDeath)
         {
             AudioManager.Instance.PlaySoundEffect(6);
-
             GameManager.Instance.SpawnOrangeExplosion(transform.position);
             Destroy(gameObject);
             return;
@@ -90,7 +83,6 @@ public abstract class Enemy : MonoBehaviour
             if (Random.value < totalDropChance)
             {
                 AudioManager.Instance.PlaySoundEffect(0);
-
                 Instantiate(woodDropPrefab, transform.position, Quaternion.identity);
             }
         }

@@ -1,3 +1,4 @@
+// Assets/Scripts/PlayerController.cs
 using System.Linq;
 using UnityEngine;
 
@@ -14,11 +15,6 @@ public class PlayerController : MonoBehaviour
     public float dashCooldown = 2f;
     public KeyCode dashKey = KeyCode.Space;
 
-    [Header("Lançar Lenha")]
-    public GameObject woodPrefab;
-    public float throwForce = 10f;
-    public Transform woodSpawnPoint;
-
     [Header("Inventário")]
     public int lenhaNoInventario = 0;
 
@@ -28,24 +24,21 @@ public class PlayerController : MonoBehaviour
     private float lastDashTime = -Mathf.Infinity;
 
     [Header("Ataque Melee Automático")]
-    public float attackRadius = 2.5f;   // O alcance do ataque
-    public float attackCooldown = 1f;   // Ataca a cada 1 segundo
-    public float  attackDamage = 1;        // Dano do ataque
-    public LayerMask enemyLayer;        // Defina no Inspector qual camada é a dos inimigos
-    public GameObject slashEffectPrefab;        // Efeito visual opcional para o ataque
-    private float lastAttackTime = -Mathf.Infinity; // Timer para o ataque
+    public float attackRadius = 2.5f;
+    public float attackCooldown = 1f;
+    public float attackDamage = 1;
+    public LayerMask enemyLayer;
+    public GameObject slashEffectPrefab;
+    private float lastAttackTime = -Mathf.Infinity;
 
     [Header("Lançar Lenha")]
-    public float throwDuration = 0.7f; // Duração do voo da lenha
+    public GameObject woodPrefab;
+    public float throwDuration = 0.7f;
     private Transform bonfireTransform;
+    
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-
-        // Pega a referência do LineRenderer e o desativa
-
-
-        // Encontra a fogueira na cena para saber o alvo do arremesso
         GameObject bonfireObj = GameObject.FindGameObjectWithTag("Bonfire");
         if (bonfireObj != null)
         {
@@ -57,7 +50,6 @@ public class PlayerController : MonoBehaviour
     {
         HandleInput();
         HandleDashInput();
-        // HandleAimingAndThrowing(); // Substitui o antigo HandleThrowInput
         HandleMeleeAttack();
     }
 
@@ -70,10 +62,8 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // NOVO: Lógica do ataque automático
     void HandleMeleeAttack()
     {
-        // A lógica para verificar o cooldown permanece a mesma
         if (Time.time >= lastAttackTime + attackCooldown)
         {
             Collider2D[] enemiesInRange = Physics2D.OverlapCircleAll(transform.position, attackRadius, enemyLayer);
@@ -93,37 +83,19 @@ public class PlayerController : MonoBehaviour
                     {
                         enemyScript.TakeDamage(attackDamage);
 
-                        // --- INÍCIO DA LÓGICA DE ROTAÇÃO ---
-
                         if (slashEffectPrefab != null)
                         {
-                            // 1. Calcula o vetor de direção do jogador para o inimigo.
-                            //    Isso nos dá a "seta" que aponta para o alvo.
                             Vector2 directionToEnemy = (closestEnemy.position - transform.position).normalized;
-
-                            // 2. Converte essa direção em um ângulo em graus.
-                            //    Mathf.Atan2 é perfeito para isso, e Rad2Deg converte de radianos para graus.
                             float angle = Mathf.Atan2(directionToEnemy.y, directionToEnemy.x) * Mathf.Rad2Deg;
-
-                            // 3. Cria a rotação final (Quaternion) que será usada na instanciação.
-                            //    A rotação acontece no eixo Z em um jogo 2D.
                             Quaternion targetRotation = Quaternion.Euler(0f, 0f, angle);
-
-                            // 4. Instancia o prefab na posição do inimigo e com a rotação que acabamos de calcular.
-                            //    Substituímos o Quaternion.identity pela nossa targetRotation.
                             Instantiate(slashEffectPrefab, closestEnemy.position, targetRotation);
-
-
                         }
-
-                        // --- FIM DA LÓGICA DE ROTAÇÃO ---
                     }
                 }
             }
         }
     }
 
-    // ... Seus outros métodos (HandleInput, Dash, etc.) ...
     void HandleInput()
     {
         input = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")).normalized;
@@ -139,40 +111,29 @@ public class PlayerController : MonoBehaviour
         isDashing = false;
     }
 
-
     void HandleDashInput()
     {
         if (Input.GetKeyDown(dashKey) && Time.time >= lastDashTime + dashCooldown && !isDashing)
         {
-            AudioManager.Instance.PlaySoundEffect(2); // Toca o som do dash
+            AudioManager.Instance.PlaySoundEffect(2);
             StartCoroutine(Dash());
         }
     }
-
-    // Dentro de PlayerController.cs
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision.CompareTag("Lenha"))
         {
-            // Pega o script da lenha que colidiu
             ThrownWood woodScript = collision.GetComponent<ThrownWood>();
+            if (woodScript != null && !woodScript.isCollectible) return;
 
-            // Se a lenha não existir ou não for coletável, ignora.
-            // O "woodScript == null" é para lenhas que podem estar no chão sem esse script.
-            if (woodScript != null && !woodScript.isCollectible)
-            {
-                return;
-            }
-
-            // Se passar, a lenha é coletável.
             lenhaNoInventario++;
             Destroy(collision.gameObject);
-            ThrowWood(); // Lança a lenha automaticamente ao coletar
+            ThrowWood();
         }
         if (collision.CompareTag("Bonfire"))
         {
-            ResetDashCooldown(); // Reseta o cooldown do dash ao entrar na fogueira
+            ResetDashCooldown();
         }
     }
 
@@ -181,46 +142,45 @@ public class PlayerController : MonoBehaviour
         if (collision.CompareTag("Lenha"))
         {
             ThrownWood woodScript = collision.GetComponent<ThrownWood>();
+            if (woodScript != null && !woodScript.isCollectible) return;
 
-            // Se a lenha não existir ou não for coletável, ignora.
-            // O "woodScript == null" é para lenhas que podem estar no chão sem esse script.
-            if (woodScript != null && !woodScript.isCollectible)
-            {
-                return;
-            }
-
-            // Se passar, a lenha é coletável.
             lenhaNoInventario++;
             Destroy(collision.gameObject);
-            ThrowWood(); // Lança a lenha automaticamente ao coletar
+            ThrowWood();
         }
     }
 
-    // NOVO: Visualizar o raio de ataque no Editor da Unity
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackRadius);
     }
+
     public void ThrowWood()
     {
-
         lenhaNoInventario--;
-        // AudioManager.Instance.PlaySoundEffect(SEU_INDICE_DE_ARREMESSO_AQUI);
-
         GameObject wood = Instantiate(woodPrefab, transform.position, Quaternion.identity);
         ThrownWood thrownWoodScript = wood.GetComponent<ThrownWood>();
 
-        if (thrownWoodScript != null)
+        if (thrownWoodScript != null && bonfireTransform != null)
         {
-            // Inicia a animação de arremesso em direção à fogueira
             thrownWoodScript.Launch(bonfireTransform.position, throwDuration);
         }
     }
 
     public void ResetDashCooldown()
     {
-        lastDashTime = -Mathf.Infinity; // Reseta o cooldown do dash
+        lastDashTime = -Mathf.Infinity;
     }
 
+    /// <summary>
+    /// Reduz o cooldown atual do dash em uma certa quantidade. Chamado por upgrades.
+    /// </summary>
+    public void ReduceDashCooldown(float amount)
+    {
+        if (!isDashing) // Só reduz se não estiver no meio de um dash
+        {
+            lastDashTime -= amount;
+        }
+    }
 }

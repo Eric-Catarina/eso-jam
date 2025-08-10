@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -16,34 +15,35 @@ public class GameManager : MonoBehaviour
     public PlayerController player;
     public Bonfire bonfire;
     public UpgradeUIManager upgradeUI;
-    public EnemySpawner enemySpawner; // Adicione a referência ao spawner
+    public EnemySpawner enemySpawner;
+    public RarityManager rarityManager; // Referência para o novo manager
 
     [Header("UI")]
     public GameObject losePanel;
-    public GameObject firstWinPanel, winPanel; // Opcional: Um painel de vitória
-    public GameObject startPanel; // Opcional: Um painel com um botão "Iniciar"
+    public GameObject firstWinPanel, winPanel;
+    public GameObject startPanel;
 
     [Header("Controle de Nível")]
     public int playerLevel = 1;
     private int currentXp = 0;
-    // Custo de XP para cada nível (Nível 1 custa 1, Nível 2 custa 3, etc.)
     public int[] xpPerLevel = { 1, 2, 3, 4, 5, 7, 9, 30, 38, 47 }; 
 
     [Header("Upgrades")]
     [Tooltip("Lista com todos os upgrades possíveis no jogo.")]
     public List<UpgradeData> allUpgrades;
-    private List<UpgradeData> availableUpgrades;
+    private List<UpgradeData> offeredUpgradesPool; // Pool de upgrades já oferecidos para evitar repetição imediata
 
     public ParticleSystem confettiEffect, orangeExplosionEffect, blueExplosionEffect;
-    // Stats Globais Modificáveis
+
+    [Header("Stats Globais Modificáveis por Upgrades")]
     public float woodDropRate = 1f;
+    public float dashCooldownReductionOnKill = 0f; // Valor do upgrade "Dash On Kill"
 
     private void Awake()
     {
         if (Instance == null)
         {
             Instance = this;
-            // DontDestroyOnLoad(gameObject); // Pode ser útil, mas cuidado ao reiniciar a cena
         }
         else
         {
@@ -53,139 +53,195 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
-        // Garante que tudo esteja pausado ou inativo no começo
         losePanel.SetActive(false);
         if (winPanel != null) winPanel.SetActive(false);
         
-        // Se tiver um painel inicial, mostre-o. Senão, inicie o jogo direto.
-        Time.timeScale = 0f; // Pausa o jogo até o jogador clicar em "Start"
+        Time.timeScale = 0f;
     }
 
-    // Este método será chamado pelo botão "Start" da sua UI
     public void StartGame()
     {
-        if (isGameRunning) return; // Evita iniciar o jogo mais de uma vez
+        if (isGameRunning) return;
         isGameRunning = true;
         Time.timeScale = 1f;
-        AudioManager.Instance.PlayBackgroundMusic(1); // Toca a música do menu ou inicial
-        // Inicia os sistemas do jogo
-        availableUpgrades = new List<UpgradeData>(allUpgrades);
+        AudioManager.Instance.PlayBackgroundMusic(1);
+        
+        offeredUpgradesPool = new List<UpgradeData>();
 
         if (enemySpawner == null)
         {
             Debug.LogError("Referência ao EnemySpawner não foi definida no GameManager!");
             return;
         }
+        if (rarityManager == null)
+        {
+            Debug.LogError("Referência ao RarityManager não foi definida no GameManager!");
+            return;
+        }
+        
         enemySpawner.StartSpawning();
-
-        // Inicia o timer de vitória (2 minutos)
         StartCoroutine(VictoryTimer());
         StartCoroutine(SecondPartTimer());
     }
 
     private IEnumerator VictoryTimer()
     {
-        yield return new WaitForSeconds(timeToWin); // Espera 2 minutos
+        yield return new WaitForSeconds(timeToWin);
         WinGame();
     }
 
-        private IEnumerator SecondPartTimer()
+    private IEnumerator SecondPartTimer()
     {
-        yield return new WaitForSeconds(timeToWinFirst); // Espera 2 minutos
+        yield return new WaitForSeconds(timeToWinFirst);
         FirstPartWin();
+    }
+    
+    // Chamado pelo inimigo ao morrer
+    public void OnEnemyKilled()
+    {
+        if (dashCooldownReductionOnKill > 0)
+        {
+            player.ReduceDashCooldown(dashCooldownReductionOnKill);
+        }
     }
 
     public void AddXp(int amount)
     {
-        if (playerLevel > xpPerLevel.Length) return; // Nível máximo atingido
+        if (playerLevel > xpPerLevel.Length) return;
 
         currentXp += amount;
         Debug.Log($"Ganhou {amount} XP. Total: {currentXp}/{xpPerLevel[playerLevel - 1]}");
 
-        // Verifica se alcançou o XP necessário para o próximo nível
         if (currentXp >= xpPerLevel[playerLevel - 1])
         {
             LevelUp();
         }
     }
 
-    private void LevelUp()
+    public void LevelUp()
     {
-        // Subtrai o custo do nível atual
         currentXp -= xpPerLevel[playerLevel - 1];
         playerLevel++;
         ShowConfetti();
         Debug.Log($"LEVEL UP! Novo nível: {playerLevel}");
         AudioManager.Instance.PlaySoundEffect(5);
 
-        Time.timeScale = 0f; // Pausa o jogo
+        Time.timeScale = 0f;
 
-        // Seleciona 3 upgrades aleatórios
-        List<UpgradeData> selectedUpgrades = new List<UpgradeData>();
-        var randomUpgrades = availableUpgrades.OrderBy(x => Random.value).ToList();
-
-        int count = Mathf.Min(3, randomUpgrades.Count);
-        for (int i = 0; i < count; i++)
-        {
-            selectedUpgrades.Add(randomUpgrades[i]);
-        }
-
-        // Mostra a tela de upgrade
+        List<UpgradeData> selectedUpgrades = GetUpgradeChoices();
         upgradeUI.ShowUpgradeOptions(selectedUpgrades);
+    }
+
+    private List<UpgradeData> GetUpgradeChoices()
+    {
+        List<UpgradeData> choices = new List<UpgradeData>();
+        
+        // Garante que a pool de upgrades não disponíveis não cresça indefinidamente
+        // if (offeredUpgradesPool.Count > allUpgrades.Count / 2)
+        // {
+            offeredUpgradesPool.Clear();
+        // }
+
+        for (int i = 0; i < 3; i++) // Oferece 3 opções
+        {
+            // 1. Sorteia uma raridade
+            Rarity targetRarity = rarityManager.SelectRandomRarity();
+            Debug.Log($"Escolhendo upgrade de raridade: {targetRarity}");
+
+            // 2. Filtra os upgrades por essa raridade que ainda não foram oferecidos ou escolhidos
+            List<UpgradeData> availableByRarity = allUpgrades
+                .Where(u => u.rarity == targetRarity && !offeredUpgradesPool.Contains(u))
+                .ToList();
+
+            // 3. Se não houver nenhum, tenta uma raridade inferior como fallback
+            if (availableByRarity.Count == 0)
+            {
+                availableByRarity = allUpgrades
+                    .Where(u => u.rarity <= targetRarity && !offeredUpgradesPool.Contains(u))
+                    .ToList();
+            }
+            
+            // 4. Se ainda assim não houver, limpa o pool e tenta de novo (caso raro)
+            if (availableByRarity.Count == 0)
+            {
+                offeredUpgradesPool.Clear();
+                 availableByRarity = allUpgrades.Where(u => u.rarity <= targetRarity).ToList();
+            }
+
+            // 5. Escolhe um upgrade aleatório da lista filtrada e adiciona à seleção
+            if (availableByRarity.Count > 0)
+            {
+                UpgradeData chosenUpgrade = availableByRarity[Random.Range(0, availableByRarity.Count)];
+                choices.Add(chosenUpgrade);
+                offeredUpgradesPool.Add(chosenUpgrade); // Adiciona ao pool para não repetir logo
+            }
+        }
+        return choices;
     }
 
     public void ApplyUpgrade(UpgradeData upgrade)
     {
-        Debug.Log($"Upgrade selecionado: {upgrade.upgradeName}");
-        switch (upgrade.type)
+        Debug.Log($"Upgrade '{upgrade.upgradeName}' (Raridade: {upgrade.rarity}) selecionado. Aplicando {upgrade.effects.Count} efeito(s).");
+
+        // Itera sobre todos os efeitos do upgrade e os aplica
+        foreach (var effect in upgrade.effects)
         {
-            case UpgradeType.WoodDropChance:
-                woodDropRate *= upgrade.value; // Acumula a chance bônus
-                break;
-            case UpgradeType.PlayerAttackSpeed:
-                player.attackCooldown *= (1f / upgrade.value); // Ex: 1.25x speed -> cooldown * (1/1.25)
-                break;
-            case UpgradeType.BonfireBurnRate:
-                bonfire.baseBurnRate *= upgrade.value; // Ex: 0.9x burn rate
-                break;
-            case UpgradeType.BonfireMaxHealth:
-                bonfire.IncreaseMaxHealth(upgrade.value);
-                break;
-            case UpgradeType.HealBonfire:
-                bonfire.HealToFull();
-                break;
-            case UpgradeType.PlayerMoveSpeed:
-                player.moveSpeed *= upgrade.value;
-                break;
-            case UpgradeType.PlayerAttackRange:
-                player.attackRadius *= upgrade.value; // Ex: 1.2x range
-                break;
-            case UpgradeType.PlayerDashCooldown:
-                player.dashCooldown *= (1f / upgrade.value); // Ex: 0.8x cooldown -> cooldown * (1/0.8)
-                break;
-            case UpgradeType.PlayerAttackDamage:
-                player.attackDamage *= upgrade.value; // Ex: 1.5x damage
-                break;
-            case UpgradeType.WoodHealingAmount:
-                bonfire.logHealingAmount += upgrade.value; // Aumenta a quantidade de vida que a fogueira recebe ao coletar lenha
-                break;
+            switch (effect.type)
+            {
+                // PLAYER
+                case UpgradeType.PlayerAttackSpeed:
+                    player.attackCooldown /= effect.value; // Ex: 1.25x speed -> cooldown / 1.25
+                    break;
+                case UpgradeType.PlayerMoveSpeed:
+                    player.moveSpeed *= effect.value;
+                    break;
+                case UpgradeType.PlayerAttackRange:
+                    player.attackRadius *= effect.value;
+                    break;
+                case UpgradeType.PlayerDashCooldown:
+                    player.dashCooldown /= effect.value; // Ex: 0.8x cooldown -> cooldown / 0.8 (melhor)
+                    break;
+                case UpgradeType.PlayerAttackDamage:
+                    player.attackDamage *= effect.value;
+                    break;
+
+                // BONFIRE
+                case UpgradeType.BonfireBurnRate:
+                    bonfire.baseBurnRate *= effect.value; // Ex: 0.9x burn rate (melhor)
+                    break;
+                case UpgradeType.BonfireMaxHealth:
+                    bonfire.IncreaseMaxHealth(effect.value);
+                    break;
+                case UpgradeType.HealBonfire:
+                    bonfire.HealToFull();
+                    break;
+                case UpgradeType.WoodHealingAmount:
+                    bonfire.logHealingAmount += effect.value;
+                    break;
+
+                // GLOBAL & COMPLEX
+                case UpgradeType.WoodDropChance:
+                    woodDropRate *= effect.value;
+                    break;
+                case UpgradeType.DashCooldownOnKill:
+                     // Acumula o valor. Múltiplos upgrades desse tipo somarão seus efeitos.
+                    dashCooldownReductionOnKill += effect.value;
+                    break;
+                case UpgradeType.IncreaseHighRarityChance:
+                    rarityManager.highTierChanceMultiplier *= effect.value;
+                    break;
+            }
         }
 
-        // Remove o upgrade da lista para não ser oferecido de novo (opcional, mas bom)
-        // availableUpgrades.Remove(upgrade);
-
-        // Despausa o jogo
         Time.timeScale = 1f;
         upgradeUI.HidePanel();
-
     }
 
+    // --- MÉTODOS DE CONTROLE DE JOGO E EFEITOS (sem alterações) ---
+    #region Game Control & VFX
     public void ShowConfetti()
     {
-        if (confettiEffect != null)
-        {
-            confettiEffect.Play();
-        }
+        if (confettiEffect != null) confettiEffect.Play();
     }
 
     public void SpawnOrangeExplosion(Vector3 position)
@@ -193,17 +249,13 @@ public class GameManager : MonoBehaviour
         if (orangeExplosionEffect != null)
         {
             var effect = Instantiate(orangeExplosionEffect, position, Quaternion.identity);
-            // move a little in z
             effect.transform.position += new Vector3(0, 0, -1f);
         }
     }
 
     public void SpawnOrangeExplosionOnBonfire()
     {
-        if (bonfire != null)
-        {
-            SpawnOrangeExplosion(bonfire.transform.position);
-        }
+        if (bonfire != null) SpawnOrangeExplosion(bonfire.transform.position);
     }
 
     public void SpawnBlueExplosion(Vector3 position)
@@ -211,9 +263,7 @@ public class GameManager : MonoBehaviour
         if (blueExplosionEffect != null)
         {
             var effect = Instantiate(blueExplosionEffect, position, Quaternion.identity);
-            // move a little in z
             effect.transform.position += new Vector3(0, 0, -1f);
-
         }
     }
 
@@ -227,7 +277,7 @@ public class GameManager : MonoBehaviour
 
     public void FirstPartWin()
     {
-        Debug.Log("Você sobreviveu! Vitória!");
+        Debug.Log("Você sobreviveu à primeira parte! Vitória Parcial!");
         if (firstWinPanel != null) firstWinPanel.SetActive(true);
         confettiEffect.Play();
         Time.timeScale = 0f;
@@ -237,12 +287,9 @@ public class GameManager : MonoBehaviour
     public void StartSecondPart()
     {
         Debug.Log("Iniciando a segunda parte do jogo...");
-        Time.timeScale = 1f; // Retorna o tempo ao normal
+        Time.timeScale = 1f;
         isGameRunning = true;
-
-        // Reinicia o tempo de jogo
         DifficultyManager.Instance.ResetTimer();
-
     }
 
     public void LoseGame()
@@ -255,7 +302,7 @@ public class GameManager : MonoBehaviour
 
     public void RestartGame()
     {
-        Time.timeScale = 1f; // Garante que o tempo volte ao normal antes de recarregar
+        Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
@@ -263,4 +310,5 @@ public class GameManager : MonoBehaviour
     {
         Application.Quit();
     }
+    #endregion
 }

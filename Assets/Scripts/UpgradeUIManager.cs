@@ -8,6 +8,7 @@ public class UpgradeUIManager : MonoBehaviour
 {
     public GameObject upgradePanel;
     public List<Button> upgradeButtons;
+    public List<Image> upgradeRarityBorders; // << NOVO: Referência para a borda/fundo do card
     public List<TextMeshProUGUI> upgradeNameTexts;
     public List<TextMeshProUGUI> upgradeDescriptionTexts;
     public List<Image> upgradeIcons;
@@ -16,31 +17,31 @@ public class UpgradeUIManager : MonoBehaviour
     {
         upgradePanel.SetActive(true);
         DisableButtons();
-        GetComponent<UIJuice>().PlayAnimation();
+        // Assumindo que você tem um script de animação, como UIJuice. Se não, remova esta linha.
+        // GetComponent<UIJuice>().PlayAnimation();
 
-
-
-        Debug.Log($"Mostrando {upgrades.Count} opções de upgrade.");
         for (int i = 0; i < upgradeButtons.Count; i++)
         {
-            if (i < upgrades.Count)
+            if (i < upgrades.Count && upgrades[i] != null)
             {
-                // Ativa e configura o botão
-                // upgradeButtons[i].gameObject.SetActive(true);
+                upgradeButtons[i].gameObject.SetActive(true);
                 upgradeNameTexts[i].text = upgrades[i].upgradeName;
                 upgradeDescriptionTexts[i].text = upgrades[i].description;
                 upgradeIcons[i].sprite = upgrades[i].icon;
 
-                // Limpa listeners antigos e adiciona o novo
-                upgradeButtons[i].onClick.RemoveAllListeners();
-                var selectedUpgrade = upgrades[i]; // Variável local para evitar problemas de closure
-                upgradeButtons[i].onClick.AddListener(() => HidePanel());
-                upgradeButtons[i].onClick.AddListener(() => GameManager.Instance.ApplyUpgrade(selectedUpgrade));
+                // Define a cor da borda com base na raridade
+                if (RarityManager.Instance != null && i < upgradeRarityBorders.Count)
+                {
+                    upgradeRarityBorders[i].color = RarityManager.Instance.GetRarityColor(upgrades[i].rarity);
+                }
 
+                upgradeButtons[i].onClick.RemoveAllListeners();
+                var selectedUpgrade = upgrades[i];
+                upgradeButtons[i].onClick.AddListener(() => GameManager.Instance.ApplyUpgrade(selectedUpgrade));
+                // O painel agora é escondido pelo próprio GameManager após aplicar o upgrade
             }
             else
             {
-                // Desativa botões não utilizados
                 upgradeButtons[i].gameObject.SetActive(false);
             }
         }
@@ -48,14 +49,17 @@ public class UpgradeUIManager : MonoBehaviour
 
     public void HidePanel()
     {
-        GetComponent<UIJuice>().PlayReverseAnimation();
-        // disable buttons and remove listeners
+        // Assumindo que você tem um script de animação. Se não, apenas desative o painel.
+        // GetComponent<UIJuice>().PlayReverseAnimation();
+        upgradePanel.SetActive(false); // Alternativa simples
+
         foreach (var button in upgradeButtons)
         {
             button.interactable = false;
             button.onClick.RemoveAllListeners();
         }
     }
+    
     public void EnableButtons()
     {
         foreach (var button in upgradeButtons)
@@ -63,7 +67,8 @@ public class UpgradeUIManager : MonoBehaviour
             button.interactable = true;
         }
     }
-        public void DisableButtons()
+    
+    public void DisableButtons()
     {
         foreach (var button in upgradeButtons)
         {
