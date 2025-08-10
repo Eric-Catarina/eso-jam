@@ -57,10 +57,13 @@ Assets/
     JiggleEffect.cs
     LightFlicker.cs
     PlayerController.cs
+    Rarity.cs
+    RarityManager.cs
     SwordSlashEffect.cs
     ThrownWood.cs
     UIWobbleEffect.cs
     UpgradeData.cs
+    UpgradeEffect.cs
     UpgradeUIManager.cs
 </directory_structure>
 
@@ -135,6 +138,126 @@ public class JiggleEffect : MonoBehaviour
 
         seq.Append(transform.DOScale(originalScale + new Vector3(-scaleAmount, scaleAmount, 0), duration).SetEase(Ease.InOutSine));
         seq.Join(transform.DOLocalMove(originalPos + new Vector3(-positionAmount, -positionAmount, 0), duration).SetEase(Ease.InOutSine));
+    }
+}
+</file>
+
+<file path="Assets/Scripts/Rarity.cs">
+// Assets/Scripts/Rarity.cs
+
+// Este enum define os diferentes níveis de raridade para os upgrades.
+public enum Rarity
+{
+    Common,
+    Rare,
+    Epic,
+    Legendary,
+    Cursed
+}
+</file>
+
+<file path="Assets/Scripts/RarityManager.cs">
+// Assets/Scripts/RarityManager.cs
+using UnityEngine;
+using System.Collections.Generic;
+using System.Linq;
+
+public class RarityManager : MonoBehaviour
+{
+    public static RarityManager Instance { get; private set; }
+
+    // Classe interna para configurar cada raridade no Inspector
+    [System.Serializable]
+    public class RarityInfo
+    {
+        public Rarity rarity;
+        public Color displayColor;
+        [Range(0f, 100f)]
+        public float baseDropChance; // Chance em porcentagem (ex: 60 para 60%)
+    }
+
+    [Header("Configuração de Raridades")]
+    [Tooltip("Defina a cor e a chance de drop para cada raridade.")]
+    public List<RarityInfo> raritySettings;
+    
+    [Header("Modificadores Globais")]
+    [Tooltip("Multiplicador para a chance de raridades altas (Épico, Lendário). Alterado por upgrades como 'Coroa de Midas'.")]
+    public float highTierChanceMultiplier = 1.0f;
+
+    private Dictionary<Rarity, RarityInfo> rarityMap;
+
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            InitializeManager();
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    private void InitializeManager()
+    {
+        // Converte a lista em um dicionário para acesso rápido e fácil
+        rarityMap = new Dictionary<Rarity, RarityInfo>();
+        foreach (var setting in raritySettings)
+        {
+            if (!rarityMap.ContainsKey(setting.rarity))
+            {
+                rarityMap.Add(setting.rarity, setting);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Retorna a cor associada a uma raridade específica.
+    /// </summary>
+    public Color GetRarityColor(Rarity rarity)
+    {
+        if (rarityMap.TryGetValue(rarity, out RarityInfo info))
+        {
+            return info.displayColor;
+        }
+        return Color.white; // Cor padrão caso não encontre
+    }
+
+    /// <summary>
+    /// Seleciona uma raridade aleatória com base nas chances configuradas.
+    /// </summary>
+    public Rarity SelectRandomRarity()
+    {
+        // Cria uma lista de chances ponderadas
+        Dictionary<Rarity, float> weightedChances = new Dictionary<Rarity, float>();
+        foreach (var info in raritySettings)
+        {
+            float currentChance = info.baseDropChance;
+            // Aplica o bônus da "Coroa de Midas" para raridades altas
+            if (info.rarity == Rarity.Epic || info.rarity == Rarity.Legendary)
+            {
+                currentChance *= highTierChanceMultiplier;
+            }
+            weightedChances.Add(info.rarity, currentChance);
+        }
+
+        float totalChanceWeight = weightedChances.Values.Sum();
+        float randomRoll = Random.Range(0f, totalChanceWeight);
+
+        // Percorre as raridades e subtrai suas chances do valor aleatório.
+        // A primeira raridade que fizer o valor ficar abaixo de zero é a escolhida.
+        foreach (var weightedChance in weightedChances)
+        {
+            randomRoll -= weightedChance.Value;
+            if (randomRoll <= 0f)
+            {
+                return weightedChance.Key;
+            }
+        }
+
+        // Como fallback, caso algo dê errado, retorna a raridade Comum.
+        return Rarity.Common;
     }
 }
 </file>
@@ -251,6 +374,20 @@ public class ThrownWood : MonoBehaviour
         launchSequence.Append(transform.DOPath(path, duration, PathType.CatmullRom).SetEase(Ease.OutQuad));
         launchSequence.Join(transform.DORotate(new Vector3(0, 0, spinSpeed * duration), duration, RotateMode.FastBeyond360).SetEase(Ease.Linear));
     }
+}
+</file>
+
+<file path="Assets/Scripts/UpgradeEffect.cs">
+// Assets/Scripts/UpgradeEffect.cs
+using System;
+
+// Marcamos como [Serializable] para que possa ser editado no Inspector da Unity
+// dentro da lista de efeitos do UpgradeData.
+[Serializable]
+public class UpgradeEffect
+{
+    public UpgradeType type; // O tipo de efeito (ex: aumentar velocidade de ataque)
+    public float value;      // O valor do efeito (ex: 1.25 para +25%)
 }
 </file>
 
@@ -747,40 +884,6 @@ public class EnemyFast : Enemy
 }
 </file>
 
-<file path="Assets/Scripts/UpgradeData.cs">
-// Assets/Scripts/UpgradeData.cs
-using UnityEngine;
-
-// Enum para identificar facilmente o tipo de upgrade
-public enum UpgradeType
-{
-    WoodDropChance,
-    PlayerAttackSpeed,
-    PlayerAttackRange,
-    BonfireBurnRate,
-    BonfireMaxHealth,
-    HealBonfire,
-    PlayerMoveSpeed,
-    PlayerDashCooldown,
-    PlayerAttackDamage,
-    WoodHealingAmount,
-}
-
-[CreateAssetMenu(fileName = "New Upgrade", menuName = "Game/Upgrade Data")]
-public class UpgradeData : ScriptableObject
-{
-    [Header("Info")]
-    public string upgradeName;
-    [TextArea]
-    public string description;
-    public Sprite icon;
-
-    [Header("Configuração")]
-    public UpgradeType type;
-    public float value; // O valor do upgrade (ex: 1.15 para 15% de chance)
-}
-</file>
-
 <file path="Assets/Scripts/EnemySpawner.cs">
 // Assets/Scripts/EnemySpawner.cs
 using System.Collections;
@@ -902,6 +1005,71 @@ public class EnemyTank : Enemy
 }
 </file>
 
+<file path="Assets/Scripts/UpgradeData.cs">
+// Assets/Scripts/UpgradeData.cs
+using UnityEngine;
+using System.Collections.Generic; // Necessário para usar List
+
+// Enum para identificar facilmente o tipo de upgrade
+public enum UpgradeType
+{
+    // Player Stats
+    PlayerMoveSpeed,
+    PlayerAttackSpeed,
+    PlayerAttackRange,
+    PlayerAttackDamage,
+    PlayerDashCooldown,
+
+    // Bonfire Stats
+    BonfireMaxHealth,
+    BonfireBurnRate,
+    WoodHealingAmount,
+    HealBonfire,
+
+    // Global Modifiers
+    WoodDropChance,
+    IncreaseHighRarityChance, // Efeito da "Coroa de Midas"
+
+    // Complex/Cursed Effects
+    DashCooldownOnKill, // Matar inimigos reduz o cooldown do dash
+    CritChance,             // Aumenta a chance de acerto crítico
+    CritDamage,             // Aumenta o dano do acerto crítico
+    LifeSteal,              // Rouba vida ao causar dano
+    ExplosionOnKill,        // Causa uma explosão ao matar um inimigo
+    DashDealsDamage,        // O dash causa dano e atravessa inimigos
+    SlowOnHit,              // Ataques aplicam lentidão
+    BurnOnHit,              // Ataques aplicam dano de queimadura ao longo do tempo
+    BonfirePulseDamage,     // Fogueira pulsa dano em área
+    GoldPlatedEnemies,      // Inimigos têm mais chance de dropar Cerne-Chama, mas são mais fortes
+    // ProjectilePierce,       // O Cerne-Chama arremessado atravessa inimigos
+    PlayerHealthRegen,      // Regeneração passiva de vida do jogador
+    DamageAuraPlayer,       // Dano em área constante ao redor do jogador
+    EnemySpawnDelay,        // Aumenta o tempo entre spawns de inimigos
+    HealthForSpeed,         // Troca vida máxima por velocidade de movimento
+    AttackDamagePerMissingHealth, // Aumenta dano com base na vida perdida do jogador
+    BonfireShield,          // Fogueira recebe escudo temporário
+    ExplosionChanceOnHit,   // Chance de explosão no impacto do ataque
+    DamageOnDashEnd,        // Causa dano em área ao final do dash
+    BonfireHealOnPlayerKill,
+}
+
+[CreateAssetMenu(fileName = "New Upgrade", menuName = "Game/Upgrade Data")]
+public class UpgradeData : ScriptableObject
+{
+    [Header("Info")]
+    public string upgradeName;
+    [TextArea(3, 5)]
+    public string description;
+    public Sprite icon;
+
+    [Header("Configuração")]
+    public Rarity rarity; // A raridade deste upgrade
+    
+    // Um upgrade agora pode ter múltiplos efeitos
+    public List<UpgradeEffect> effects = new List<UpgradeEffect>();
+}
+</file>
+
 <file path="Assets/Scripts/UpgradeUIManager.cs">
 // Assets/Scripts/UpgradeUIManager.cs
 using UnityEngine;
@@ -913,6 +1081,7 @@ public class UpgradeUIManager : MonoBehaviour
 {
     public GameObject upgradePanel;
     public List<Button> upgradeButtons;
+    public List<Image> upgradeRarityBorders; // << NOVO: Referência para a borda/fundo do card
     public List<TextMeshProUGUI> upgradeNameTexts;
     public List<TextMeshProUGUI> upgradeDescriptionTexts;
     public List<Image> upgradeIcons;
@@ -921,31 +1090,31 @@ public class UpgradeUIManager : MonoBehaviour
     {
         upgradePanel.SetActive(true);
         DisableButtons();
-        GetComponent<UIJuice>().PlayAnimation();
+        // Assumindo que você tem um script de animação, como UIJuice. Se não, remova esta linha.
+        // GetComponent<UIJuice>().PlayAnimation();
 
-
-
-        Debug.Log($"Mostrando {upgrades.Count} opções de upgrade.");
         for (int i = 0; i < upgradeButtons.Count; i++)
         {
-            if (i < upgrades.Count)
+            if (i < upgrades.Count && upgrades[i] != null)
             {
-                // Ativa e configura o botão
-                // upgradeButtons[i].gameObject.SetActive(true);
+                upgradeButtons[i].gameObject.SetActive(true);
                 upgradeNameTexts[i].text = upgrades[i].upgradeName;
                 upgradeDescriptionTexts[i].text = upgrades[i].description;
                 upgradeIcons[i].sprite = upgrades[i].icon;
 
-                // Limpa listeners antigos e adiciona o novo
-                upgradeButtons[i].onClick.RemoveAllListeners();
-                var selectedUpgrade = upgrades[i]; // Variável local para evitar problemas de closure
-                upgradeButtons[i].onClick.AddListener(() => HidePanel());
-                upgradeButtons[i].onClick.AddListener(() => GameManager.Instance.ApplyUpgrade(selectedUpgrade));
+                // Define a cor da borda com base na raridade
+                if (RarityManager.Instance != null && i < upgradeRarityBorders.Count)
+                {
+                    upgradeRarityBorders[i].color = RarityManager.Instance.GetRarityColor(upgrades[i].rarity);
+                }
 
+                upgradeButtons[i].onClick.RemoveAllListeners();
+                var selectedUpgrade = upgrades[i];
+                upgradeButtons[i].onClick.AddListener(() => GameManager.Instance.ApplyUpgrade(selectedUpgrade));
+                // O painel agora é escondido pelo próprio GameManager após aplicar o upgrade
             }
             else
             {
-                // Desativa botões não utilizados
                 upgradeButtons[i].gameObject.SetActive(false);
             }
         }
@@ -953,14 +1122,17 @@ public class UpgradeUIManager : MonoBehaviour
 
     public void HidePanel()
     {
-        GetComponent<UIJuice>().PlayReverseAnimation();
-        // disable buttons and remove listeners
+        // Assumindo que você tem um script de animação. Se não, apenas desative o painel.
+        // GetComponent<UIJuice>().PlayReverseAnimation();
+        upgradePanel.SetActive(false); // Alternativa simples
+
         foreach (var button in upgradeButtons)
         {
             button.interactable = false;
             button.onClick.RemoveAllListeners();
         }
     }
+    
     public void EnableButtons()
     {
         foreach (var button in upgradeButtons)
@@ -968,7 +1140,8 @@ public class UpgradeUIManager : MonoBehaviour
             button.interactable = true;
         }
     }
-        public void DisableButtons()
+    
+    public void DisableButtons()
     {
         foreach (var button in upgradeButtons)
         {
@@ -979,6 +1152,7 @@ public class UpgradeUIManager : MonoBehaviour
 </file>
 
 <file path="Assets/Scripts/PlayerController.cs">
+// Assets/Scripts/PlayerController.cs
 using System.Linq;
 using UnityEngine;
 
@@ -995,11 +1169,6 @@ public class PlayerController : MonoBehaviour
     public float dashCooldown = 2f;
     public KeyCode dashKey = KeyCode.Space;
 
-    [Header("Lançar Lenha")]
-    public GameObject woodPrefab;
-    public float throwForce = 10f;
-    public Transform woodSpawnPoint;
-
     [Header("Inventário")]
     public int lenhaNoInventario = 0;
 
@@ -1009,24 +1178,21 @@ public class PlayerController : MonoBehaviour
     private float lastDashTime = -Mathf.Infinity;
 
     [Header("Ataque Melee Automático")]
-    public float attackRadius = 2.5f;   // O alcance do ataque
-    public float attackCooldown = 1f;   // Ataca a cada 1 segundo
-    public float  attackDamage = 1;        // Dano do ataque
-    public LayerMask enemyLayer;        // Defina no Inspector qual camada é a dos inimigos
-    public GameObject slashEffectPrefab;        // Efeito visual opcional para o ataque
-    private float lastAttackTime = -Mathf.Infinity; // Timer para o ataque
+    public float attackRadius = 2.5f;
+    public float attackCooldown = 1f;
+    public float attackDamage = 1;
+    public LayerMask enemyLayer;
+    public GameObject slashEffectPrefab;
+    private float lastAttackTime = -Mathf.Infinity;
 
     [Header("Lançar Lenha")]
-    public float throwDuration = 0.7f; // Duração do voo da lenha
+    public GameObject woodPrefab;
+    public float throwDuration = 0.7f;
     private Transform bonfireTransform;
+    
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-
-        // Pega a referência do LineRenderer e o desativa
-
-
-        // Encontra a fogueira na cena para saber o alvo do arremesso
         GameObject bonfireObj = GameObject.FindGameObjectWithTag("Bonfire");
         if (bonfireObj != null)
         {
@@ -1038,7 +1204,6 @@ public class PlayerController : MonoBehaviour
     {
         HandleInput();
         HandleDashInput();
-        // HandleAimingAndThrowing(); // Substitui o antigo HandleThrowInput
         HandleMeleeAttack();
     }
 
@@ -1051,10 +1216,17 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // NOVO: Lógica do ataque automático
+    void OnEnable()
+    {
+        Enemy.OnEnemyKilled += ResetDashCooldown;
+    }
+    void OnDisable()
+    {
+        Enemy.OnEnemyKilled -= ResetDashCooldown;
+    }
+
     void HandleMeleeAttack()
     {
-        // A lógica para verificar o cooldown permanece a mesma
         if (Time.time >= lastAttackTime + attackCooldown)
         {
             Collider2D[] enemiesInRange = Physics2D.OverlapCircleAll(transform.position, attackRadius, enemyLayer);
@@ -1074,37 +1246,19 @@ public class PlayerController : MonoBehaviour
                     {
                         enemyScript.TakeDamage(attackDamage);
 
-                        // --- INÍCIO DA LÓGICA DE ROTAÇÃO ---
-
                         if (slashEffectPrefab != null)
                         {
-                            // 1. Calcula o vetor de direção do jogador para o inimigo.
-                            //    Isso nos dá a "seta" que aponta para o alvo.
                             Vector2 directionToEnemy = (closestEnemy.position - transform.position).normalized;
-
-                            // 2. Converte essa direção em um ângulo em graus.
-                            //    Mathf.Atan2 é perfeito para isso, e Rad2Deg converte de radianos para graus.
                             float angle = Mathf.Atan2(directionToEnemy.y, directionToEnemy.x) * Mathf.Rad2Deg;
-
-                            // 3. Cria a rotação final (Quaternion) que será usada na instanciação.
-                            //    A rotação acontece no eixo Z em um jogo 2D.
                             Quaternion targetRotation = Quaternion.Euler(0f, 0f, angle);
-
-                            // 4. Instancia o prefab na posição do inimigo e com a rotação que acabamos de calcular.
-                            //    Substituímos o Quaternion.identity pela nossa targetRotation.
                             Instantiate(slashEffectPrefab, closestEnemy.position, targetRotation);
-
-
                         }
-
-                        // --- FIM DA LÓGICA DE ROTAÇÃO ---
                     }
                 }
             }
         }
     }
 
-    // ... Seus outros métodos (HandleInput, Dash, etc.) ...
     void HandleInput()
     {
         input = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")).normalized;
@@ -1120,40 +1274,29 @@ public class PlayerController : MonoBehaviour
         isDashing = false;
     }
 
-
     void HandleDashInput()
     {
         if (Input.GetKeyDown(dashKey) && Time.time >= lastDashTime + dashCooldown && !isDashing)
         {
-            AudioManager.Instance.PlaySoundEffect(2); // Toca o som do dash
+            AudioManager.Instance.PlaySoundEffect(2);
             StartCoroutine(Dash());
         }
     }
-
-    // Dentro de PlayerController.cs
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision.CompareTag("Lenha"))
         {
-            // Pega o script da lenha que colidiu
             ThrownWood woodScript = collision.GetComponent<ThrownWood>();
+            if (woodScript != null && !woodScript.isCollectible) return;
 
-            // Se a lenha não existir ou não for coletável, ignora.
-            // O "woodScript == null" é para lenhas que podem estar no chão sem esse script.
-            if (woodScript != null && !woodScript.isCollectible)
-            {
-                return;
-            }
-
-            // Se passar, a lenha é coletável.
             lenhaNoInventario++;
             Destroy(collision.gameObject);
-            ThrowWood(); // Lança a lenha automaticamente ao coletar
+            ThrowWood();
         }
         if (collision.CompareTag("Bonfire"))
         {
-            ResetDashCooldown(); // Reseta o cooldown do dash ao entrar na fogueira
+            ResetDashCooldown();
         }
     }
 
@@ -1162,48 +1305,47 @@ public class PlayerController : MonoBehaviour
         if (collision.CompareTag("Lenha"))
         {
             ThrownWood woodScript = collision.GetComponent<ThrownWood>();
+            if (woodScript != null && !woodScript.isCollectible) return;
 
-            // Se a lenha não existir ou não for coletável, ignora.
-            // O "woodScript == null" é para lenhas que podem estar no chão sem esse script.
-            if (woodScript != null && !woodScript.isCollectible)
-            {
-                return;
-            }
-
-            // Se passar, a lenha é coletável.
             lenhaNoInventario++;
             Destroy(collision.gameObject);
-            ThrowWood(); // Lança a lenha automaticamente ao coletar
+            ThrowWood();
         }
     }
 
-    // NOVO: Visualizar o raio de ataque no Editor da Unity
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackRadius);
     }
+
     public void ThrowWood()
     {
-
         lenhaNoInventario--;
-        // AudioManager.Instance.PlaySoundEffect(SEU_INDICE_DE_ARREMESSO_AQUI);
-
         GameObject wood = Instantiate(woodPrefab, transform.position, Quaternion.identity);
         ThrownWood thrownWoodScript = wood.GetComponent<ThrownWood>();
 
-        if (thrownWoodScript != null)
+        if (thrownWoodScript != null && bonfireTransform != null)
         {
-            // Inicia a animação de arremesso em direção à fogueira
             thrownWoodScript.Launch(bonfireTransform.position, throwDuration);
         }
     }
 
     public void ResetDashCooldown()
     {
-        lastDashTime = -Mathf.Infinity; // Reseta o cooldown do dash
+        lastDashTime = -Mathf.Infinity;
     }
 
+    /// <summary>
+    /// Reduz o cooldown atual do dash em uma certa quantidade. Chamado por upgrades.
+    /// </summary>
+    public void ReduceDashCooldown(float amount)
+    {
+        if (!isDashing) // Só reduz se não estiver no meio de um dash
+        {
+            lastDashTime -= amount;
+        }
+    }
 }
 </file>
 
@@ -1224,7 +1366,7 @@ public class Bonfire : MonoBehaviour
     public float baseBurnRate = 0.5f; // Perda de energia por segundo
     [Tooltip("Multiplicador da taxa de queima quando a fogueira está com vida máxima.")]
     public float maxHealthBurnMultiplier = 2.5f; // A 100% de vida, queima 2.5x mais rápido
-    
+
     public float logHealingAmount = 10f; // Quanto de vida a fogueira ganha ao coletar lenha
     // Curva para um controle suave da taxa de queima
     [Tooltip("Controla como a taxa de queima aumenta com a vida. X=0 (0% vida), Y=1 (taxa base). X=1 (100% vida), Y=2.5 (taxa máxima).")]
@@ -1243,6 +1385,8 @@ public class Bonfire : MonoBehaviour
     private float initialParticleStartSize;
     private float initialParticleStartSpeed;
     private float initialParticleEmissionRate;
+
+    public bool isInvincible = false; // Se a fogueira é invencível (para debug)
 
     void Start()
     {
@@ -1271,37 +1415,15 @@ public class Bonfire : MonoBehaviour
         {
             Debug.LogError("Referência para o Health Slider não definida no Bonfire!");
         }
-        
+
         // Configura o slider com os valores iniciais
         UpdateHealthSlider();
     }
 
     void Update()
     {
-        // Calcula a porcentagem de vida atual (0.0 a 1.0)
-        float healthPercent = currentHealth / maxHealth;
-        
-        // Calcula a taxa de queima atual baseada na curva
-        float currentBurnMultiplier = burnRateCurve.Evaluate(healthPercent);
-        float currentBurnRate = baseBurnRate * currentBurnMultiplier;
-
-        // Perde vida com o tempo
-        currentHealth -= currentBurnRate * Time.deltaTime;
-        
-        // Garante que a vida não fique negativa
-        currentHealth = Mathf.Max(currentHealth, 0);
-
-        // Atualiza todos os sistemas dependentes
-        UpdateFireVisuals(healthPercent);
+        TakeBurnDamage();
         UpdateHealthSlider();
-
-        // Condição de derrota (Game Over)
-        if (currentHealth <= 0)
-        {
-            GameManager.Instance.LoseGame(); // Chama o método de Game Over do GameManager
-            Debug.Log("A FOGUEIRA APAGOU! GAME OVER.");
-            // Lógica de Game Over...
-        }
     }
 
     void OnTriggerEnter2D(Collider2D other)
@@ -1317,8 +1439,30 @@ public class Bonfire : MonoBehaviour
             currentHealth = Mathf.Min(currentHealth, maxHealth); // Garante que não ultrapasse o máximo
             GameManager.Instance.SpawnOrangeExplosion(transform.position); // Efeito visual de coleta
         }
-          
 
+
+    }
+
+    private void TakeBurnDamage()
+    {
+        if (isInvincible) return; // Se a fogueira é invencível, não recebe dano
+        float healthPercent = currentHealth / maxHealth;
+
+        float currentBurnMultiplier = burnRateCurve.Evaluate(healthPercent);
+
+        float currentBurnRate = baseBurnRate * currentBurnMultiplier;
+
+        currentHealth -= currentBurnRate * Time.deltaTime;
+        currentHealth = Mathf.Max(currentHealth, 0);
+
+        UpdateFireVisuals(healthPercent);
+
+        if (currentHealth <= 0)
+        {
+            currentHealth = 0;
+            GameManager.Instance.LoseGame(); // Chama o método de Game Over do GameManager
+            Debug.Log("A FOGUEIRA APAGOU! GAME OVER.");
+        }
     }
 
     /// <summary>
@@ -1375,6 +1519,7 @@ public class Bonfire : MonoBehaviour
 
     public void ReceberDano(float dano)
     {
+        if (isInvincible) return; // Se a fogueira é invencível, não recebe dano
         currentHealth -= dano;
     }
 
@@ -1387,7 +1532,7 @@ public class Bonfire : MonoBehaviour
         currentHealth += healthGained;
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
         UpdateHealthSlider();
-        
+
         // Avisa o componente de luz que seus valores máximos também aumentaram.
         if (bonfireLight != null)
         {
@@ -1399,6 +1544,8 @@ public class Bonfire : MonoBehaviour
     {
         currentHealth = maxHealth;
     }
+
+
 }
 </file>
 
@@ -1406,6 +1553,8 @@ public class Bonfire : MonoBehaviour
 // Assets/Scripts/Enemy.cs
 using UnityEngine;
 using DG.Tweening;
+using System;
+using Random = UnityEngine.Random;
 
 public abstract class Enemy : MonoBehaviour
 {
@@ -1420,19 +1569,17 @@ public abstract class Enemy : MonoBehaviour
     [Range(0f, 1f)]
     public float woodDropChance = 0.5f;
 
-    // Variáveis floaternas
+    // Variáveis internas
     protected float finalSpeed;
     protected Transform target;
     protected SpriteRenderer sr;
     protected bool fireDeath = false;
+    public static Action OnEnemyKilled;
 
     protected virtual void Start()
     {
-        // Aplica os multiplicadores de dificuldade no momento do spawn
         ApplyDifficultyModifiers();
-        
-        currentHealth = baseMaxHealth; // A vida atual começa no máximo
-                                       // Pega o sprite renderer do filho
+        currentHealth = baseMaxHealth;
         sr = GetComponentInChildren<SpriteRenderer>();
 
         GameObject bonfireObject = GameObject.FindGameObjectWithTag("Bonfire");
@@ -1442,13 +1589,9 @@ public abstract class Enemy : MonoBehaviour
         }
     }
 
-    // NOVO: Método que aplica a dificuldade
     protected virtual void ApplyDifficultyModifiers()
     {
-        // Pega os multiplicadores do DifficultyManager
         finalSpeed = baseSpeed * DifficultyManager.Instance.EnemySpeedMultiplier;
-        
-        // Multiplica a vida base pelo modificador e arredonda para o inteiro mais próximo
         baseMaxHealth = Mathf.RoundToInt(baseMaxHealth * DifficultyManager.Instance.EnemyHealthMultiplier);
     }
 
@@ -1465,7 +1608,6 @@ public abstract class Enemy : MonoBehaviour
     public void TakeDamage(float damage)
     {
         AudioManager.Instance.PlaySoundEffect(2);
-
         currentHealth -= damage;
         sr.DOColor(Color.white, 0.1f).SetLoops(2, LoopType.Yoyo);
 
@@ -1477,13 +1619,15 @@ public abstract class Enemy : MonoBehaviour
 
     protected virtual void Die()
     {
-
+        // << NOVO: Notifica o GameManager que um inimigo morreu >>
+        GameManager.Instance.OnEnemyKilled();
+        
         GameManager.Instance.SpawnBlueExplosion(transform.position);
+        OnEnemyKilled?.Invoke();
 
         if (fireDeath)
         {
             AudioManager.Instance.PlaySoundEffect(6);
-
             GameManager.Instance.SpawnOrangeExplosion(transform.position);
             Destroy(gameObject);
             return;
@@ -1495,7 +1639,6 @@ public abstract class Enemy : MonoBehaviour
             if (Random.value < totalDropChance)
             {
                 AudioManager.Instance.PlaySoundEffect(0);
-
                 Instantiate(woodDropPrefab, transform.position, Quaternion.identity);
             }
         }
@@ -1519,7 +1662,6 @@ public abstract class Enemy : MonoBehaviour
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -1533,34 +1675,36 @@ public class GameManager : MonoBehaviour
     public PlayerController player;
     public Bonfire bonfire;
     public UpgradeUIManager upgradeUI;
-    public EnemySpawner enemySpawner; // Adicione a referência ao spawner
+    public EnemySpawner enemySpawner;
+    public RarityManager rarityManager; // Referência para o novo manager
 
     [Header("UI")]
     public GameObject losePanel;
-    public GameObject firstWinPanel, winPanel; // Opcional: Um painel de vitória
-    public GameObject startPanel; // Opcional: Um painel com um botão "Iniciar"
+    public GameObject firstWinPanel, winPanel;
+    public GameObject startPanel;
 
     [Header("Controle de Nível")]
     public int playerLevel = 1;
     private int currentXp = 0;
-    // Custo de XP para cada nível (Nível 1 custa 1, Nível 2 custa 3, etc.)
-    public int[] xpPerLevel = { 1, 2, 3, 4, 5, 7, 9, 30, 38, 47 }; 
+    public int[] xpPerLevel = { 1, 2, 3, 4, 5, 7, 9, 30, 38, 47 };
 
     [Header("Upgrades")]
     [Tooltip("Lista com todos os upgrades possíveis no jogo.")]
     public List<UpgradeData> allUpgrades;
-    private List<UpgradeData> availableUpgrades;
+    private List<UpgradeData> offeredUpgradesPool; // Pool de upgrades já oferecidos para evitar repetição imediata
 
     public ParticleSystem confettiEffect, orangeExplosionEffect, blueExplosionEffect;
-    // Stats Globais Modificáveis
+
+    [Header("Stats Globais Modificáveis por Upgrades")]
     public float woodDropRate = 1f;
+    public float dashCooldownReductionOnKill = 0f; // Valor do upgrade "Dash On Kill"
+    private bool godMode = false; // Modo Deus para debug
 
     private void Awake()
     {
         if (Instance == null)
         {
             Instance = this;
-            // DontDestroyOnLoad(gameObject); // Pode ser útil, mas cuidado ao reiniciar a cena
         }
         else
         {
@@ -1570,139 +1714,195 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
-        // Garante que tudo esteja pausado ou inativo no começo
         losePanel.SetActive(false);
         if (winPanel != null) winPanel.SetActive(false);
-        
-        // Se tiver um painel inicial, mostre-o. Senão, inicie o jogo direto.
-        Time.timeScale = 0f; // Pausa o jogo até o jogador clicar em "Start"
+
+        Time.timeScale = 0f;
     }
 
-    // Este método será chamado pelo botão "Start" da sua UI
     public void StartGame()
     {
-        if (isGameRunning) return; // Evita iniciar o jogo mais de uma vez
+        if (isGameRunning) return;
         isGameRunning = true;
         Time.timeScale = 1f;
-        AudioManager.Instance.PlayBackgroundMusic(1); // Toca a música do menu ou inicial
-        // Inicia os sistemas do jogo
-        availableUpgrades = new List<UpgradeData>(allUpgrades);
+        AudioManager.Instance.PlayBackgroundMusic(1);
+
+        offeredUpgradesPool = new List<UpgradeData>();
 
         if (enemySpawner == null)
         {
             Debug.LogError("Referência ao EnemySpawner não foi definida no GameManager!");
             return;
         }
-        enemySpawner.StartSpawning();
+        if (rarityManager == null)
+        {
+            Debug.LogError("Referência ao RarityManager não foi definida no GameManager!");
+            return;
+        }
 
-        // Inicia o timer de vitória (2 minutos)
+        enemySpawner.StartSpawning();
         StartCoroutine(VictoryTimer());
         StartCoroutine(SecondPartTimer());
     }
 
     private IEnumerator VictoryTimer()
     {
-        yield return new WaitForSeconds(timeToWin); // Espera 2 minutos
+        yield return new WaitForSeconds(timeToWin);
         WinGame();
     }
 
-        private IEnumerator SecondPartTimer()
+    private IEnumerator SecondPartTimer()
     {
-        yield return new WaitForSeconds(timeToWinFirst); // Espera 2 minutos
+        yield return new WaitForSeconds(timeToWinFirst);
         FirstPartWin();
+    }
+
+    // Chamado pelo inimigo ao morrer
+    public void OnEnemyKilled()
+    {
+        if (dashCooldownReductionOnKill > 0)
+        {
+            player.ReduceDashCooldown(dashCooldownReductionOnKill);
+        }
     }
 
     public void AddXp(int amount)
     {
-        if (playerLevel > xpPerLevel.Length) return; // Nível máximo atingido
+        if (playerLevel > xpPerLevel.Length) return;
 
         currentXp += amount;
         Debug.Log($"Ganhou {amount} XP. Total: {currentXp}/{xpPerLevel[playerLevel - 1]}");
 
-        // Verifica se alcançou o XP necessário para o próximo nível
         if (currentXp >= xpPerLevel[playerLevel - 1])
         {
             LevelUp();
         }
     }
 
-    private void LevelUp()
+    public void LevelUp()
     {
-        // Subtrai o custo do nível atual
         currentXp -= xpPerLevel[playerLevel - 1];
         playerLevel++;
         ShowConfetti();
         Debug.Log($"LEVEL UP! Novo nível: {playerLevel}");
         AudioManager.Instance.PlaySoundEffect(5);
 
-        Time.timeScale = 0f; // Pausa o jogo
+        Time.timeScale = 0f;
 
-        // Seleciona 3 upgrades aleatórios
-        List<UpgradeData> selectedUpgrades = new List<UpgradeData>();
-        var randomUpgrades = availableUpgrades.OrderBy(x => Random.value).ToList();
-
-        int count = Mathf.Min(3, randomUpgrades.Count);
-        for (int i = 0; i < count; i++)
-        {
-            selectedUpgrades.Add(randomUpgrades[i]);
-        }
-
-        // Mostra a tela de upgrade
+        List<UpgradeData> selectedUpgrades = GetUpgradeChoices();
         upgradeUI.ShowUpgradeOptions(selectedUpgrades);
+    }
+
+    private List<UpgradeData> GetUpgradeChoices()
+    {
+        List<UpgradeData> choices = new List<UpgradeData>();
+
+        // Garante que a pool de upgrades não disponíveis não cresça indefinidamente
+        // if (offeredUpgradesPool.Count > allUpgrades.Count / 2)
+        // {
+        offeredUpgradesPool.Clear();
+        // }
+
+        for (int i = 0; i < 3; i++) // Oferece 3 opções
+        {
+            // 1. Sorteia uma raridade
+            Rarity targetRarity = rarityManager.SelectRandomRarity();
+            Debug.Log($"Escolhendo upgrade de raridade: {targetRarity}");
+
+            // 2. Filtra os upgrades por essa raridade que ainda não foram oferecidos ou escolhidos
+            List<UpgradeData> availableByRarity = allUpgrades
+                .Where(u => u.rarity == targetRarity && !offeredUpgradesPool.Contains(u))
+                .ToList();
+
+            // 3. Se não houver nenhum, tenta uma raridade inferior como fallback
+            if (availableByRarity.Count == 0)
+            {
+                availableByRarity = allUpgrades
+                    .Where(u => u.rarity <= targetRarity && !offeredUpgradesPool.Contains(u))
+                    .ToList();
+            }
+
+            // 4. Se ainda assim não houver, limpa o pool e tenta de novo (caso raro)
+            if (availableByRarity.Count == 0)
+            {
+                offeredUpgradesPool.Clear();
+                availableByRarity = allUpgrades.Where(u => u.rarity <= targetRarity).ToList();
+            }
+
+            // 5. Escolhe um upgrade aleatório da lista filtrada e adiciona à seleção
+            if (availableByRarity.Count > 0)
+            {
+                UpgradeData chosenUpgrade = availableByRarity[Random.Range(0, availableByRarity.Count)];
+                choices.Add(chosenUpgrade);
+                offeredUpgradesPool.Add(chosenUpgrade); // Adiciona ao pool para não repetir logo
+            }
+        }
+        return choices;
     }
 
     public void ApplyUpgrade(UpgradeData upgrade)
     {
-        Debug.Log($"Upgrade selecionado: {upgrade.upgradeName}");
-        switch (upgrade.type)
+        Debug.Log($"Upgrade '{upgrade.upgradeName}' (Raridade: {upgrade.rarity}) selecionado. Aplicando {upgrade.effects.Count} efeito(s).");
+
+        // Itera sobre todos os efeitos do upgrade e os aplica
+        foreach (var effect in upgrade.effects)
         {
-            case UpgradeType.WoodDropChance:
-                woodDropRate *= upgrade.value; // Acumula a chance bônus
-                break;
-            case UpgradeType.PlayerAttackSpeed:
-                player.attackCooldown *= (1f / upgrade.value); // Ex: 1.25x speed -> cooldown * (1/1.25)
-                break;
-            case UpgradeType.BonfireBurnRate:
-                bonfire.baseBurnRate *= upgrade.value; // Ex: 0.9x burn rate
-                break;
-            case UpgradeType.BonfireMaxHealth:
-                bonfire.IncreaseMaxHealth(upgrade.value);
-                break;
-            case UpgradeType.HealBonfire:
-                bonfire.HealToFull();
-                break;
-            case UpgradeType.PlayerMoveSpeed:
-                player.moveSpeed *= upgrade.value;
-                break;
-            case UpgradeType.PlayerAttackRange:
-                player.attackRadius *= upgrade.value; // Ex: 1.2x range
-                break;
-            case UpgradeType.PlayerDashCooldown:
-                player.dashCooldown *= (1f / upgrade.value); // Ex: 0.8x cooldown -> cooldown * (1/0.8)
-                break;
-            case UpgradeType.PlayerAttackDamage:
-                player.attackDamage *= upgrade.value; // Ex: 1.5x damage
-                break;
-            case UpgradeType.WoodHealingAmount:
-                bonfire.logHealingAmount += upgrade.value; // Aumenta a quantidade de vida que a fogueira recebe ao coletar lenha
-                break;
+            switch (effect.type)
+            {
+                // PLAYER
+                case UpgradeType.PlayerAttackSpeed:
+                    player.attackCooldown /= effect.value; // Ex: 1.25x speed -> cooldown / 1.25
+                    break;
+                case UpgradeType.PlayerMoveSpeed:
+                    player.moveSpeed *= effect.value;
+                    break;
+                case UpgradeType.PlayerAttackRange:
+                    player.attackRadius *= effect.value;
+                    break;
+                case UpgradeType.PlayerDashCooldown:
+                    player.dashCooldown /= effect.value; // Ex: 0.8x cooldown -> cooldown / 0.8 (melhor)
+                    break;
+                case UpgradeType.PlayerAttackDamage:
+                    player.attackDamage *= effect.value;
+                    break;
+
+                // BONFIRE
+                case UpgradeType.BonfireBurnRate:
+                    bonfire.baseBurnRate *= effect.value; // Ex: 0.9x burn rate (melhor)
+                    break;
+                case UpgradeType.BonfireMaxHealth:
+                    bonfire.IncreaseMaxHealth(effect.value);
+                    break;
+                case UpgradeType.HealBonfire:
+                    bonfire.HealToFull();
+                    break;
+                case UpgradeType.WoodHealingAmount:
+                    bonfire.logHealingAmount += effect.value;
+                    break;
+
+                // GLOBAL & COMPLEX
+                case UpgradeType.WoodDropChance:
+                    woodDropRate *= effect.value;
+                    break;
+                case UpgradeType.DashCooldownOnKill:
+                    // Acumula o valor. Múltiplos upgrades desse tipo somarão seus efeitos.
+                    dashCooldownReductionOnKill += effect.value;
+                    break;
+                case UpgradeType.IncreaseHighRarityChance:
+                    rarityManager.highTierChanceMultiplier *= effect.value;
+                    break;
+            }
         }
 
-        // Remove o upgrade da lista para não ser oferecido de novo (opcional, mas bom)
-        // availableUpgrades.Remove(upgrade);
-
-        // Despausa o jogo
         Time.timeScale = 1f;
         upgradeUI.HidePanel();
-
     }
 
+    // --- MÉTODOS DE CONTROLE DE JOGO E EFEITOS (sem alterações) ---
+    #region Game Control & VFX
     public void ShowConfetti()
     {
-        if (confettiEffect != null)
-        {
-            confettiEffect.Play();
-        }
+        if (confettiEffect != null) confettiEffect.Play();
     }
 
     public void SpawnOrangeExplosion(Vector3 position)
@@ -1710,17 +1910,13 @@ public class GameManager : MonoBehaviour
         if (orangeExplosionEffect != null)
         {
             var effect = Instantiate(orangeExplosionEffect, position, Quaternion.identity);
-            // move a little in z
             effect.transform.position += new Vector3(0, 0, -1f);
         }
     }
 
     public void SpawnOrangeExplosionOnBonfire()
     {
-        if (bonfire != null)
-        {
-            SpawnOrangeExplosion(bonfire.transform.position);
-        }
+        if (bonfire != null) SpawnOrangeExplosion(bonfire.transform.position);
     }
 
     public void SpawnBlueExplosion(Vector3 position)
@@ -1728,9 +1924,7 @@ public class GameManager : MonoBehaviour
         if (blueExplosionEffect != null)
         {
             var effect = Instantiate(blueExplosionEffect, position, Quaternion.identity);
-            // move a little in z
             effect.transform.position += new Vector3(0, 0, -1f);
-
         }
     }
 
@@ -1744,7 +1938,7 @@ public class GameManager : MonoBehaviour
 
     public void FirstPartWin()
     {
-        Debug.Log("Você sobreviveu! Vitória!");
+        Debug.Log("Você sobreviveu à primeira parte! Vitória Parcial!");
         if (firstWinPanel != null) firstWinPanel.SetActive(true);
         confettiEffect.Play();
         Time.timeScale = 0f;
@@ -1754,16 +1948,17 @@ public class GameManager : MonoBehaviour
     public void StartSecondPart()
     {
         Debug.Log("Iniciando a segunda parte do jogo...");
-        Time.timeScale = 1f; // Retorna o tempo ao normal
+        Time.timeScale = 1f;
         isGameRunning = true;
-
-        // Reinicia o tempo de jogo
         DifficultyManager.Instance.ResetTimer();
-
     }
 
     public void LoseGame()
     {
+        if (godMode)
+        {
+            return; // Se estiver no modo Deus, não finaliza o jogo
+        }
         Debug.Log("Você perdeu! Exibindo painel de derrota.");
         losePanel.SetActive(true);
         Time.timeScale = 0f;
@@ -1772,13 +1967,29 @@ public class GameManager : MonoBehaviour
 
     public void RestartGame()
     {
-        Time.timeScale = 1f; // Garante que o tempo volte ao normal antes de recarregar
+        Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
     public void QuitGame()
     {
         Application.Quit();
+    }
+    #endregion
+
+    public void SwitchGodMode()
+    {
+        godMode = !godMode;
+        if (godMode)
+        {
+            bonfire.HealToFull(); // Cura a fogueira se ativar o modo Deus
+            bonfire.isInvincible = true; // Torna a fogueira invencível
+
+        }
+        else
+        {
+            bonfire.isInvincible = false; // Desativa a invencibilidade
+        }
     }
 }
 </file>

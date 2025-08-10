@@ -164,7 +164,7 @@ MonoBehaviour:
   baseMaxHealth: 0.8
   dano: 2
   woodDropPrefab: {fileID: 6534654697714713015, guid: e5753f5a1f1768374b65c4be67f0a896, type: 3}
-  woodDropChance: 0.5
+  woodDropChance: 0.7
   spiralFrequency: 3
   spiralMagnitude: 0.8
 --- !u!1 &7862992567267172723

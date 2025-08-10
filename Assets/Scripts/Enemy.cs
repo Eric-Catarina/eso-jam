@@ -1,6 +1,8 @@
 // Assets/Scripts/Enemy.cs
 using UnityEngine;
 using DG.Tweening;
+using System;
+using Random = UnityEngine.Random;
 
 public abstract class Enemy : MonoBehaviour
 {
@@ -20,6 +22,7 @@ public abstract class Enemy : MonoBehaviour
     protected Transform target;
     protected SpriteRenderer sr;
     protected bool fireDeath = false;
+    public static Action OnEnemyKilled;
 
     protected virtual void Start()
     {
@@ -68,6 +71,7 @@ public abstract class Enemy : MonoBehaviour
         GameManager.Instance.OnEnemyKilled();
         
         GameManager.Instance.SpawnBlueExplosion(transform.position);
+        OnEnemyKilled?.Invoke();
 
         if (fireDeath)
         {

@@ -10,10 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 959046d4584e0fe6fb63d69eb2b034e6, type: 3}
-  m_Name: LogHealing
+  m_Name: AttackDamage
   m_EditorClassIdentifier: 
-  upgradeName: Log Healing
-  description: Increase Log Healing by 20%
-  icon: {fileID: 21300000, guid: ac95acc52ab46eb3c9bd1c73e800118f, type: 3}
-  type: 5
-  value: 1.2
+  upgradeName: Sentinel's Whetstone
+  description: Increase Attack Damage by 25%
+  icon: {fileID: 21300000, guid: bd0cba6971e60593b8e0dfad1712c981, type: 3}
+  rarity: 0
+  effects:
+  - type: 3
+    value: 1.25

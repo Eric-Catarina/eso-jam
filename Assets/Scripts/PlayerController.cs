@@ -62,6 +62,15 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    void OnEnable()
+    {
+        Enemy.OnEnemyKilled += ResetDashCooldown;
+    }
+    void OnDisable()
+    {
+        Enemy.OnEnemyKilled -= ResetDashCooldown;
+    }
+
     void HandleMeleeAttack()
     {
         if (Time.time >= lastAttackTime + attackCooldown)
