@@ -26,7 +26,7 @@ public class GameManager : MonoBehaviour
     [Header("Controle de Nível")]
     public int playerLevel = 1;
     private int currentXp = 0;
-    public int[] xpPerLevel = { 1, 2, 3, 4, 5, 7, 9, 30, 38, 47 }; 
+    public int[] xpPerLevel = { 1, 2, 3, 4, 5, 7, 9, 30, 38, 47 };
 
     [Header("Upgrades")]
     [Tooltip("Lista com todos os upgrades possíveis no jogo.")]
@@ -38,6 +38,7 @@ public class GameManager : MonoBehaviour
     [Header("Stats Globais Modificáveis por Upgrades")]
     public float woodDropRate = 1f;
     public float dashCooldownReductionOnKill = 0f; // Valor do upgrade "Dash On Kill"
+    private bool godMode = false; // Modo Deus para debug
 
     private void Awake()
     {
@@ -55,7 +56,7 @@ public class GameManager : MonoBehaviour
     {
         losePanel.SetActive(false);
         if (winPanel != null) winPanel.SetActive(false);
-        
+
         Time.timeScale = 0f;
     }
 
@@ -65,7 +66,7 @@ public class GameManager : MonoBehaviour
         isGameRunning = true;
         Time.timeScale = 1f;
         AudioManager.Instance.PlayBackgroundMusic(1);
-        
+
         offeredUpgradesPool = new List<UpgradeData>();
 
         if (enemySpawner == null)
@@ -78,7 +79,7 @@ public class GameManager : MonoBehaviour
             Debug.LogError("Referência ao RarityManager não foi definida no GameManager!");
             return;
         }
-        
+
         enemySpawner.StartSpawning();
         StartCoroutine(VictoryTimer());
         StartCoroutine(SecondPartTimer());
@@ -95,7 +96,7 @@ public class GameManager : MonoBehaviour
         yield return new WaitForSeconds(timeToWinFirst);
         FirstPartWin();
     }
-    
+
     // Chamado pelo inimigo ao morrer
     public void OnEnemyKilled()
     {
@@ -135,11 +136,11 @@ public class GameManager : MonoBehaviour
     private List<UpgradeData> GetUpgradeChoices()
     {
         List<UpgradeData> choices = new List<UpgradeData>();
-        
+
         // Garante que a pool de upgrades não disponíveis não cresça indefinidamente
         // if (offeredUpgradesPool.Count > allUpgrades.Count / 2)
         // {
-            offeredUpgradesPool.Clear();
+        offeredUpgradesPool.Clear();
         // }
 
         for (int i = 0; i < 3; i++) // Oferece 3 opções
@@ -160,12 +161,12 @@ public class GameManager : MonoBehaviour
                     .Where(u => u.rarity <= targetRarity && !offeredUpgradesPool.Contains(u))
                     .ToList();
             }
-            
+
             // 4. Se ainda assim não houver, limpa o pool e tenta de novo (caso raro)
             if (availableByRarity.Count == 0)
             {
                 offeredUpgradesPool.Clear();
-                 availableByRarity = allUpgrades.Where(u => u.rarity <= targetRarity).ToList();
+                availableByRarity = allUpgrades.Where(u => u.rarity <= targetRarity).ToList();
             }
 
             // 5. Escolhe um upgrade aleatório da lista filtrada e adiciona à seleção
@@ -224,7 +225,7 @@ public class GameManager : MonoBehaviour
                     woodDropRate *= effect.value;
                     break;
                 case UpgradeType.DashCooldownOnKill:
-                     // Acumula o valor. Múltiplos upgrades desse tipo somarão seus efeitos.
+                    // Acumula o valor. Múltiplos upgrades desse tipo somarão seus efeitos.
                     dashCooldownReductionOnKill += effect.value;
                     break;
                 case UpgradeType.IncreaseHighRarityChance:
@@ -294,6 +295,10 @@ public class GameManager : MonoBehaviour
 
     public void LoseGame()
     {
+        if (godMode)
+        {
+            return; // Se estiver no modo Deus, não finaliza o jogo
+        }
         Debug.Log("Você perdeu! Exibindo painel de derrota.");
         losePanel.SetActive(true);
         Time.timeScale = 0f;
@@ -311,4 +316,19 @@ public class GameManager : MonoBehaviour
         Application.Quit();
     }
     #endregion
+
+    public void SwitchGodMode()
+    {
+        godMode = !godMode;
+        if (godMode)
+        {
+            bonfire.HealToFull(); // Cura a fogueira se ativar o modo Deus
+            bonfire.isInvincible = true; // Torna a fogueira invencível
+
+        }
+        else
+        {
+            bonfire.isInvincible = false; // Desativa a invencibilidade
+        }
+    }
 }

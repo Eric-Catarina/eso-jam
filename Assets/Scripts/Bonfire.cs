@@ -14,7 +14,7 @@ public class Bonfire : MonoBehaviour
     public float baseBurnRate = 0.5f; // Perda de energia por segundo
     [Tooltip("Multiplicador da taxa de queima quando a fogueira está com vida máxima.")]
     public float maxHealthBurnMultiplier = 2.5f; // A 100% de vida, queima 2.5x mais rápido
-    
+
     public float logHealingAmount = 10f; // Quanto de vida a fogueira ganha ao coletar lenha
     // Curva para um controle suave da taxa de queima
     [Tooltip("Controla como a taxa de queima aumenta com a vida. X=0 (0% vida), Y=1 (taxa base). X=1 (100% vida), Y=2.5 (taxa máxima).")]
@@ -33,6 +33,8 @@ public class Bonfire : MonoBehaviour
     private float initialParticleStartSize;
     private float initialParticleStartSpeed;
     private float initialParticleEmissionRate;
+
+    public bool isInvincible = false; // Se a fogueira é invencível (para debug)
 
     void Start()
     {
@@ -61,37 +63,15 @@ public class Bonfire : MonoBehaviour
         {
             Debug.LogError("Referência para o Health Slider não definida no Bonfire!");
         }
-        
+
         // Configura o slider com os valores iniciais
         UpdateHealthSlider();
     }
 
     void Update()
     {
-        // Calcula a porcentagem de vida atual (0.0 a 1.0)
-        float healthPercent = currentHealth / maxHealth;
-        
-        // Calcula a taxa de queima atual baseada na curva
-        float currentBurnMultiplier = burnRateCurve.Evaluate(healthPercent);
-        float currentBurnRate = baseBurnRate * currentBurnMultiplier;
-
-        // Perde vida com o tempo
-        currentHealth -= currentBurnRate * Time.deltaTime;
-        
-        // Garante que a vida não fique negativa
-        currentHealth = Mathf.Max(currentHealth, 0);
-
-        // Atualiza todos os sistemas dependentes
-        UpdateFireVisuals(healthPercent);
+        TakeBurnDamage();
         UpdateHealthSlider();
-
-        // Condição de derrota (Game Over)
-        if (currentHealth <= 0)
-        {
-            GameManager.Instance.LoseGame(); // Chama o método de Game Over do GameManager
-            Debug.Log("A FOGUEIRA APAGOU! GAME OVER.");
-            // Lógica de Game Over...
-        }
     }
 
     void OnTriggerEnter2D(Collider2D other)
@@ -107,8 +87,30 @@ public class Bonfire : MonoBehaviour
             currentHealth = Mathf.Min(currentHealth, maxHealth); // Garante que não ultrapasse o máximo
             GameManager.Instance.SpawnOrangeExplosion(transform.position); // Efeito visual de coleta
         }
-          
 
+
+    }
+
+    private void TakeBurnDamage()
+    {
+        if (isInvincible) return; // Se a fogueira é invencível, não recebe dano
+        float healthPercent = currentHealth / maxHealth;
+
+        float currentBurnMultiplier = burnRateCurve.Evaluate(healthPercent);
+
+        float currentBurnRate = baseBurnRate * currentBurnMultiplier;
+
+        currentHealth -= currentBurnRate * Time.deltaTime;
+        currentHealth = Mathf.Max(currentHealth, 0);
+
+        UpdateFireVisuals(healthPercent);
+
+        if (currentHealth <= 0)
+        {
+            currentHealth = 0;
+            GameManager.Instance.LoseGame(); // Chama o método de Game Over do GameManager
+            Debug.Log("A FOGUEIRA APAGOU! GAME OVER.");
+        }
     }
 
     /// <summary>
@@ -165,6 +167,7 @@ public class Bonfire : MonoBehaviour
 
     public void ReceberDano(float dano)
     {
+        if (isInvincible) return; // Se a fogueira é invencível, não recebe dano
         currentHealth -= dano;
     }
 
@@ -177,7 +180,7 @@ public class Bonfire : MonoBehaviour
         currentHealth += healthGained;
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
         UpdateHealthSlider();
-        
+
         // Avisa o componente de luz que seus valores máximos também aumentaram.
         if (bonfireLight != null)
         {
@@ -189,4 +192,6 @@ public class Bonfire : MonoBehaviour
     {
         currentHealth = maxHealth;
     }
+
+
 }

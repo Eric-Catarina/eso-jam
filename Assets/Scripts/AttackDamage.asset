@@ -15,5 +15,5 @@ MonoBehaviour:
   upgradeName: Attack Range Bonus
   description: Increase Attack Damage by 25%
   icon: {fileID: 21300000, guid: 1626be72de486d8ab91c5f38f03e5986, type: 3}
-  type: 8
-  value: 1.25
+  rarity: 1
+  effects: []
