@@ -19,6 +19,7 @@ public class GameManager : MonoBehaviour
     public UpgradeUIManager upgradeUI;
     public EnemySpawner enemySpawner;
     public RarityManager rarityManager;
+    public SaveSystemAdapter saveSystem; // << NOVO: Referência ao Adapter
 
     [Header("UI")]
     public GameObject losePanel;
@@ -29,19 +30,18 @@ public class GameManager : MonoBehaviour
 
     [Header("Controle de Nível")]
     public int playerLevel = 1;
-    private float currentXp = 0f; // XP agora é um float para mais precisão.
+    private float currentXp = 0f;
     public int[] xpPerLevel = { 1, 2, 3, 4, 5, 7, 9, 30, 38, 47 };
 
     [Header("Upgrades")]
-    [Tooltip("Lista com todos os upgrades possíveis no jogo.")]
     public List<UpgradeData> allUpgrades;
     private List<UpgradeData> offeredUpgradesPool;
+    public GameObject woodDropPrefab;
 
     public ParticleSystem confettiEffect, orangeExplosionEffect, blueExplosionEffect;
 
-    [Header("Stats Globais Modificáveis por Upgrades")]
-    [Tooltip("Multiplicador para a QUANTIDADE de lenha dropada pelos inimigos. 1 = 100% do base, 1.5 = 150% do base.")]
-    public float woodDropMultiplier = 1f; // Nome alterado para clareza.
+    [Header("Stats Globais")]
+    public float woodDropMultiplier = 1f;
     public float dashCooldownReductionOnKill = 0f;
     private bool godMode = false;
 
@@ -56,7 +56,6 @@ public class GameManager : MonoBehaviour
             Destroy(gameObject);
         }
         
-        // Se inscreve nos eventos globais para reagir a eles.
         GameEvents.OnWoodCollected += AddXp;
         GameEvents.OnEnemyKilled += HandleEnemyKill;
         GameEvents.OnGameOver += HandleGameOver;
@@ -64,10 +63,22 @@ public class GameManager : MonoBehaviour
 
     private void OnDestroy()
     {
-        // Sempre cancele a inscrição ao destruir o objeto para evitar memory leaks.
         GameEvents.OnWoodCollected -= AddXp;
         GameEvents.OnEnemyKilled -= HandleEnemyKill;
         GameEvents.OnGameOver -= HandleGameOver;
+    }
+    
+    private void Update()
+    {
+        // Debug para salvar e carregar
+        if (Input.GetKeyDown(KeyCode.F5))
+        {
+            saveSystem.SaveGame();
+        }
+        if (Input.GetKeyDown(KeyCode.F9))
+        {
+            saveSystem.LoadGame();
+        }
     }
 
     private void Start()
@@ -84,14 +95,11 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 1f;
         AudioManager.Instance.PlayBackgroundMusic(1);
         offeredUpgradesPool = new List<UpgradeData>();
-
-        if (enemySpawner == null) Debug.LogError("Referência ao EnemySpawner não foi definida no GameManager!");
-        if (rarityManager == null) Debug.LogError("Referência ao RarityManager não foi definida no GameManager!");
         
         enemySpawner.StartSpawning();
         StartCoroutine(VictoryTimer());
         StartCoroutine(SecondPartTimer());
-        GameEvents.RaiseGameStart(); // Dispara evento de início de jogo.
+        GameEvents.RaiseGameStart();
     }
 
     private IEnumerator VictoryTimer()
@@ -106,7 +114,6 @@ public class GameManager : MonoBehaviour
         FirstPartWin();
     }
 
-    // Handler para o evento de morte de inimigo (usado para upgrades específicos).
     private void HandleEnemyKill(Enemy killedEnemy)
     {
         if (dashCooldownReductionOnKill > 0)
@@ -115,7 +122,6 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    // Método que ouve o evento OnWoodCollected. Aceita float.
     public void AddXp(float amount)
     {
         if (playerLevel > xpPerLevel.Length) return;
@@ -137,7 +143,7 @@ public class GameManager : MonoBehaviour
         ShowConfetti();
         Debug.Log($"LEVEL UP! Novo nível: {playerLevel}");
         AudioManager.Instance.PlaySoundEffect(5);
-        GameEvents.RaisePlayerLevelUp(playerLevel); // Dispara evento de level up.
+        GameEvents.RaisePlayerLevelUp(playerLevel);
 
         Time.timeScale = 0f;
 
@@ -153,7 +159,6 @@ public class GameManager : MonoBehaviour
         for (int i = 0; i < 3; i++)
         {
             Rarity targetRarity = rarityManager.SelectRandomRarity();
-            Debug.Log($"Escolhendo upgrade de raridade: {targetRarity}");
 
             List<UpgradeData> availableByRarity = allUpgrades
                 .Where(u => u.rarity == targetRarity && !offeredUpgradesPool.Contains(u))
@@ -217,8 +222,8 @@ public class GameManager : MonoBehaviour
                 case UpgradeType.WoodHealingAmount:
                     bonfire.logHealingAmount += effect.value;
                     break;
-                case UpgradeType.WoodDropChance: // O enum continua com este nome
-                    woodDropMultiplier *= effect.value; // mas a lógica usa a variável correta.
+                case UpgradeType.WoodDropChance:
+                    woodDropMultiplier *= effect.value;
                     break;
                 case UpgradeType.DashCooldownOnKill:
                     dashCooldownReductionOnKill += effect.value;
@@ -268,7 +273,7 @@ public class GameManager : MonoBehaviour
         if (winPanel != null) winPanel.SetActive(true);
         Time.timeScale = 0f;
         DifficultyManager.Instance.StopTimer();
-        GameEvents.RaiseGameWin(); // Dispara evento de vitória.
+        GameEvents.RaiseGameWin();
     }
 
     public void FirstPartWin()
@@ -278,7 +283,7 @@ public class GameManager : MonoBehaviour
         confettiEffect.Play();
         Time.timeScale = 0f;
         DifficultyManager.Instance.StopTimer();
-        GameEvents.RaiseFirstPartWin(); // Dispara evento de vitória parcial.
+        GameEvents.RaiseFirstPartWin();
     }
 
     public void StartSecondPart()
@@ -292,7 +297,6 @@ public class GameManager : MonoBehaviour
     public void LoseGame()
     {
         if (godMode) return;
-        // Apenas dispara o evento. A lógica de UI e pause está no handler.
         GameEvents.RaiseGameOver();
     }
 

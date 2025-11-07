@@ -4,10 +4,8 @@ using UnityEngine;
 
 public class EnemySpawner : MonoBehaviour
 {
-    [Header("Prefabs dos Inimigos")]
-    public GameObject commonEnemyPrefab;
-    public GameObject fastEnemyPrefab;
-    public GameObject tankEnemyPrefab;
+    [Header("Referências")]
+    public EnemyFactory enemyFactory;
 
     [Header("Configuração do Spawn")]
     [Tooltip("A taxa de spawn base (inimigos por segundo) no início do jogo.")]
@@ -21,21 +19,22 @@ public class EnemySpawner : MonoBehaviour
     public float tankEnemyChance = 0.1f;
 
     private Transform bonfire;
-    private bool isSpawning = false; // Flag para garantir que a rotina não inicie duas vezes
+    private bool isSpawning = false;
 
     void Start()
     {
-        // Apenas pega a referência, não inicia o spawn
         bonfire = GameObject.FindGameObjectWithTag("Bonfire").transform;
+        if (enemyFactory == null)
+        {
+            Debug.LogError("EnemyFactory não está atribuída no EnemySpawner!");
+            this.enabled = false;
+        }
     }
 
-    // Este método é o único ponto de entrada para começar a spawnar
     public void StartSpawning()
     {
-        if (isSpawning) return; // Se já estiver spawnando, não faz nada
+        if (isSpawning) return;
         isSpawning = true;
-        
-        Debug.Log("Iniciando a rotina de spawn de inimigos...");
         StartCoroutine(SpawnRoutine());
     }
 
@@ -43,28 +42,23 @@ public class EnemySpawner : MonoBehaviour
     {
         while (isSpawning)
         {
-            // Calcula a taxa de spawn atual usando o DifficultyManager
             float currentSpawnRate = baseSpawnRate * DifficultyManager.Instance.SpawnRateMultiplier;
             float waitTime = 1f / currentSpawnRate;
-            
             yield return new WaitForSeconds(waitTime);
-
             SpawnEnemy();
         }
     }
 
     void SpawnEnemy()
     {
-        GameObject prefabToSpawn;
+        EnemyType typeToSpawn;
         float randomValue = Random.value;
 
-        if (randomValue < fastEnemyChance) prefabToSpawn = fastEnemyPrefab;
-        else if (randomValue < fastEnemyChance + tankEnemyChance) prefabToSpawn = tankEnemyPrefab;
-        else prefabToSpawn = commonEnemyPrefab;
+        if (randomValue < fastEnemyChance) typeToSpawn = EnemyType.Fast;
+        else if (randomValue < fastEnemyChance + tankEnemyChance) typeToSpawn = EnemyType.Tank;
+        else typeToSpawn = EnemyType.Common;
         
-        if (prefabToSpawn == null) return;
-
         Vector2 spawnPos = (Vector2)bonfire.position + Random.insideUnitCircle.normalized * spawnRadius;
-        Instantiate(prefabToSpawn, spawnPos, Quaternion.identity);
+        enemyFactory.CreateEnemy(typeToSpawn, spawnPos);
     }
 }

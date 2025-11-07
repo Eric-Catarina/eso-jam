@@ -5,52 +5,58 @@ using Random = UnityEngine.Random;
 
 public abstract class Enemy : MonoBehaviour
 {
-    [Header("Atributos Base (antes da dificuldade)")]
-    public float baseSpeed = 3f;
-    public float baseMaxHealth = 2;
-    public float dano = 4;
+    [HideInInspector] public EnemyData enemyData;
+    public float dano { get; private set; }
     protected float currentHealth;
-
-    [Header("Drops")]
-    public GameObject woodDropPrefab;
-    [Tooltip("Define a quantidade base de lenha que este inimigo dropa. Pode ser um valor fracionado (ex: 0.5 para 50% de chance de dropar 1).")]
-    public float baseWoodToDrop = 0.5f;
-
-    // Variáveis internas
+    
     protected float finalSpeed;
-    protected Transform target;
+    public Transform target { get; private set; }
     protected SpriteRenderer sr;
     protected bool fireDeath = false;
 
-    protected virtual void Start()
+    private IEnemyState currentState;
+    private float randomOffset;
+
+    public void Initialize(EnemyData data)
     {
+        enemyData = data;
+        dano = enemyData.dano;
+
         ApplyDifficultyModifiers();
-        currentHealth = baseMaxHealth;
+        currentHealth = enemyData.baseMaxHealth;
+        
         sr = GetComponentInChildren<SpriteRenderer>();
+        randomOffset = Random.Range(0f, 100f);
 
         GameObject bonfireObject = GameObject.FindGameObjectWithTag("Bonfire");
         if (bonfireObject != null)
         {
             target = bonfireObject.transform;
         }
+        
+        ChangeState(new ChaseState());
     }
 
     protected virtual void ApplyDifficultyModifiers()
     {
-        finalSpeed = baseSpeed * DifficultyManager.Instance.EnemySpeedMultiplier;
-        baseMaxHealth = Mathf.RoundToInt(baseMaxHealth * DifficultyManager.Instance.EnemyHealthMultiplier);
+        finalSpeed = enemyData.baseSpeed * DifficultyManager.Instance.EnemySpeedMultiplier;
+        // Vida máxima já é definida com base no EnemyData, que será modificado pela dificuldade
+        enemyData.baseMaxHealth = Mathf.RoundToInt(enemyData.baseMaxHealth * DifficultyManager.Instance.EnemyHealthMultiplier);
     }
 
     private void Update()
     {
-        if (target != null)
-        {
-            Move();
-        }
+        currentState?.Execute(this);
     }
 
-    protected abstract void Move();
+    public void ChangeState(IEnemyState newState)
+    {
+        currentState = newState;
+        currentState.OnEnter(this);
+    }
 
+    public abstract void PerformMovement();
+    
     public void TakeDamage(float damage)
     {
         AudioManager.Instance.PlaySoundEffect(2);
@@ -65,9 +71,7 @@ public abstract class Enemy : MonoBehaviour
 
     protected virtual void Die()
     {
-        // Dispara o evento global, passando este componente do inimigo para qualquer script que esteja ouvindo.
         GameEvents.RaiseEnemyKilled(this);
-
         GameManager.Instance.SpawnBlueExplosion(transform.position);
 
         if (fireDeath)
@@ -77,57 +81,45 @@ public abstract class Enemy : MonoBehaviour
         }
         else
         {
-            // A lógica de drop só acontece se o inimigo não morreu na fogueira.
             HandleDrops();
         }
-
         Destroy(gameObject);
     }
+    
+    public void SetFireDeath() => fireDeath = true;
+    public void ForceDie() => Die();
 
-    /// <summary>
-    /// Calcula e instancia os drops de lenha com base na quantidade esperada.
-    /// </summary>
     protected virtual void HandleDrops()
     {
-        if (woodDropPrefab == null) return;
+        if (GameManager.Instance.woodDropPrefab == null) return;
 
-        // Calcula a quantidade de drops com base no valor do inimigo e no multiplicador global.
-        float expectedDrops = baseWoodToDrop * GameManager.Instance.woodDropMultiplier;
+        float expectedDrops = enemyData.baseWoodToDrop * GameManager.Instance.woodDropMultiplier;
         int wholeDrops = Mathf.FloorToInt(expectedDrops);
         float fractionalChance = expectedDrops - wholeDrops;
 
-        // Dropa a quantidade garantida.
-        for (int i = 0; i < wholeDrops; i++)
-        {
-            SpawnWood();
-        }
-
-        // Verifica a chance fracionária de dropar um extra.
-        if (Random.value < fractionalChance)
-        {
-            SpawnWood();
-        }
+        for (int i = 0; i < wholeDrops; i++) SpawnWood();
+        if (Random.value < fractionalChance) SpawnWood();
     }
 
-    /// <summary>
-    /// Instancia uma única peça de lenha na posição do inimigo.
-    /// </summary>
     private void SpawnWood()
     {
         AudioManager.Instance.PlaySoundEffect(0);
-        // Adiciona um pequeno offset aleatório para que as lenhas não fiquem empilhadas.
         Vector2 spawnPos = (Vector2)transform.position + Random.insideUnitCircle * 0.5f;
-        Instantiate(woodDropPrefab, spawnPos, Quaternion.identity);
+        Instantiate(GameManager.Instance.woodDropPrefab, spawnPos, Quaternion.identity);
+    }
+    
+    public EnemySaveData GetSaveData()
+    {
+        return new EnemySaveData
+        {
+            type = enemyData.enemyType,
+            position = transform.position,
+            currentHealth = this.currentHealth
+        };
     }
 
-
-    protected virtual void OnTriggerEnter2D(Collider2D collision)
+    public void LoadFromSaveData(EnemySaveData data)
     {
-        if (collision.CompareTag("Bonfire"))
-        {
-            collision.GetComponent<Bonfire>().ReceberDano(dano);
-            fireDeath = true;
-            Die();
-        }
+        this.currentHealth = data.currentHealth;
     }
 }
