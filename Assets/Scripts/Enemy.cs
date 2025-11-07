@@ -15,7 +15,7 @@ public abstract class Enemy : MonoBehaviour
     protected bool fireDeath = false;
 
     private IEnemyState currentState;
-    private float randomOffset;
+    private EnemyVisualsFlyweight visualFlyweight; // << NOVO: Referência ao Flyweight
 
     public void Initialize(EnemyData data)
     {
@@ -26,7 +26,17 @@ public abstract class Enemy : MonoBehaviour
         currentHealth = enemyData.baseMaxHealth;
         
         sr = GetComponentInChildren<SpriteRenderer>();
-        randomOffset = Random.Range(0f, 100f);
+        
+        // --- LÓGICA DO FLYWEIGHT ---
+        // 1. Solicita o Flyweight visual para a fábrica
+        visualFlyweight = FlyweightFactory.GetEnemyVisuals(data.enemyType);
+        
+        // 2. Aplica o estado intrínseco (Sprite) ao componente
+        if (visualFlyweight != null)
+        {
+            sr.sprite = visualFlyweight.Sprite;
+        }
+        // --- FIM DA LÓGICA ---
 
         GameObject bonfireObject = GameObject.FindGameObjectWithTag("Bonfire");
         if (bonfireObject != null)
@@ -40,7 +50,6 @@ public abstract class Enemy : MonoBehaviour
     protected virtual void ApplyDifficultyModifiers()
     {
         finalSpeed = enemyData.baseSpeed * DifficultyManager.Instance.EnemySpeedMultiplier;
-        // Vida máxima já é definida com base no EnemyData, que será modificado pela dificuldade
         enemyData.baseMaxHealth = Mathf.RoundToInt(enemyData.baseMaxHealth * DifficultyManager.Instance.EnemyHealthMultiplier);
     }
 
