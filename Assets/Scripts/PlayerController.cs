@@ -36,6 +36,18 @@ public class PlayerController : MonoBehaviour
     public float throwDuration = 0.7f;
     private Transform bonfireTransform;
     
+    private void Awake()
+    {
+        // Se inscreve no evento global de morte de inimigos.
+        GameEvents.OnEnemyKilled += HandleEnemyKilled;
+    }
+    
+    private void OnDestroy()
+    {
+        // Cancela a inscrição para evitar erros e memory leaks quando o objeto for destruído.
+        GameEvents.OnEnemyKilled -= HandleEnemyKilled;
+    }
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -61,14 +73,15 @@ public class PlayerController : MonoBehaviour
             rb.velocity = Vector2.Lerp(rb.velocity, targetVelocity, acceleration * Time.fixedDeltaTime);
         }
     }
-
-    void OnEnable()
+    
+    /// <summary>
+    /// Handler que é chamado quando o evento GameEvents.OnEnemyKilled é disparado.
+    /// </summary>
+    private void HandleEnemyKilled(Enemy killedEnemy)
     {
-        Enemy.OnEnemyKilled += ResetDashCooldown;
-    }
-    void OnDisable()
-    {
-        Enemy.OnEnemyKilled -= ResetDashCooldown;
+        // A lógica é simplesmente resetar o cooldown do dash.
+        // O parâmetro 'killedEnemy' não é usado aqui, mas é exigido pela assinatura do evento.
+        ResetDashCooldown();
     }
 
     void HandleMeleeAttack()
@@ -182,12 +195,9 @@ public class PlayerController : MonoBehaviour
         lastDashTime = -Mathf.Infinity;
     }
 
-    /// <summary>
-    /// Reduz o cooldown atual do dash em uma certa quantidade. Chamado por upgrades.
-    /// </summary>
     public void ReduceDashCooldown(float amount)
     {
-        if (!isDashing) // Só reduz se não estiver no meio de um dash
+        if (!isDashing)
         {
             lastDashTime -= amount;
         }

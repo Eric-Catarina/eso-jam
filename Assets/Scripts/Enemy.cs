@@ -1,7 +1,6 @@
 // Assets/Scripts/Enemy.cs
 using UnityEngine;
 using DG.Tweening;
-using System;
 using Random = UnityEngine.Random;
 
 public abstract class Enemy : MonoBehaviour
@@ -12,17 +11,16 @@ public abstract class Enemy : MonoBehaviour
     public float dano = 4;
     protected float currentHealth;
 
-    [Header("Alvo e Drops")]
+    [Header("Drops")]
     public GameObject woodDropPrefab;
-    [Range(0f, 1f)]
-    public float woodDropChance = 0.5f;
+    [Tooltip("Define a quantidade base de lenha que este inimigo dropa. Pode ser um valor fracionado (ex: 0.5 para 50% de chance de dropar 1).")]
+    public float baseWoodToDrop = 0.5f;
 
     // Variáveis internas
     protected float finalSpeed;
     protected Transform target;
     protected SpriteRenderer sr;
     protected bool fireDeath = false;
-    public static Action OnEnemyKilled;
 
     protected virtual void Start()
     {
@@ -67,31 +65,61 @@ public abstract class Enemy : MonoBehaviour
 
     protected virtual void Die()
     {
-        // << NOVO: Notifica o GameManager que um inimigo morreu >>
-        GameManager.Instance.OnEnemyKilled();
-        
+        // Dispara o evento global, passando este componente do inimigo para qualquer script que esteja ouvindo.
+        GameEvents.RaiseEnemyKilled(this);
+
         GameManager.Instance.SpawnBlueExplosion(transform.position);
-        OnEnemyKilled?.Invoke();
 
         if (fireDeath)
         {
             AudioManager.Instance.PlaySoundEffect(6);
             GameManager.Instance.SpawnOrangeExplosion(transform.position);
-            Destroy(gameObject);
-            return;
+        }
+        else
+        {
+            // A lógica de drop só acontece se o inimigo não morreu na fogueira.
+            HandleDrops();
         }
 
-        if (woodDropPrefab != null)
-        {
-            float totalDropChance = woodDropChance * GameManager.Instance.woodDropRate;
-            if (Random.value < totalDropChance)
-            {
-                AudioManager.Instance.PlaySoundEffect(0);
-                Instantiate(woodDropPrefab, transform.position, Quaternion.identity);
-            }
-        }
         Destroy(gameObject);
     }
+
+    /// <summary>
+    /// Calcula e instancia os drops de lenha com base na quantidade esperada.
+    /// </summary>
+    protected virtual void HandleDrops()
+    {
+        if (woodDropPrefab == null) return;
+
+        // Calcula a quantidade de drops com base no valor do inimigo e no multiplicador global.
+        float expectedDrops = baseWoodToDrop * GameManager.Instance.woodDropMultiplier;
+        int wholeDrops = Mathf.FloorToInt(expectedDrops);
+        float fractionalChance = expectedDrops - wholeDrops;
+
+        // Dropa a quantidade garantida.
+        for (int i = 0; i < wholeDrops; i++)
+        {
+            SpawnWood();
+        }
+
+        // Verifica a chance fracionária de dropar um extra.
+        if (Random.value < fractionalChance)
+        {
+            SpawnWood();
+        }
+    }
+
+    /// <summary>
+    /// Instancia uma única peça de lenha na posição do inimigo.
+    /// </summary>
+    private void SpawnWood()
+    {
+        AudioManager.Instance.PlaySoundEffect(0);
+        // Adiciona um pequeno offset aleatório para que as lenhas não fiquem empilhadas.
+        Vector2 spawnPos = (Vector2)transform.position + Random.insideUnitCircle * 0.5f;
+        Instantiate(woodDropPrefab, spawnPos, Quaternion.identity);
+    }
+
 
     protected virtual void OnTriggerEnter2D(Collider2D collision)
     {

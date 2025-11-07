@@ -5,41 +5,22 @@ public class EnemyTank : Enemy
 {
     protected override void Start()
     {
-        // Stats: Lento e com mais vida
-  
-        // Chama o Start da classe base, que vai aplicar os modificadores de dificuldade
+        // Stats: Lento e com mais vida.
+        // Define a quantidade base de lenha que o Tank dropa. Este valor será
+        // afetado por multiplicadores de upgrades.
+        baseWoodToDrop = 2f; // Ex: Dropa 2 lenhas garantidas.
+
+        // Chama o Start da classe base, que vai aplicar os modificadores de dificuldade.
         base.Start();
     }
 
-    // Movimento simples e direto
+    // Movimento simples e direto.
     protected override void Move()
     {
-        transform.position = Vector2.MoveTowards(transform.position, target.position, finalSpeed * Time.deltaTime);    }
-
-    // Sobrescreve o método Die para dropar 3 lenhas
-    protected override void Die()
-    {
-        GameManager.Instance.SpawnBlueExplosion(transform.position);
-
-        if (fireDeath)
-        {
-            GameManager.Instance.SpawnOrangeExplosion(transform.position);
-            Destroy(gameObject);
-            return;
-        }
-
-        // Lógica de drop especial: sempre dropa 3 lenhas
-        if (woodDropPrefab != null)
-        {
-            AudioManager.Instance.PlaySoundEffect(0);
-
-            for (int i = 0; i < 2; i++)
-            {
-                // Pequeno offset aleatório para não spawnar todas no mesmo lugar
-                Vector2 spawnPos = (Vector2)transform.position + Random.insideUnitCircle * 0.5f;
-                Instantiate(woodDropPrefab, spawnPos, Quaternion.identity);
-            }
-        }
-        Destroy(gameObject);
+        transform.position = Vector2.MoveTowards(transform.position, target.position, finalSpeed * Time.deltaTime);
     }
+
+    // O método Die() foi REMOVIDO. Agora ele usa a lógica unificada da classe base 'Enemy',
+    // tornando o código mais limpo e evitando duplicação. A lógica de drop especial
+    // é controlada pela variável 'baseWoodToDrop'.
 }

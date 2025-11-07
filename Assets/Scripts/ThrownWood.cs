@@ -9,6 +9,10 @@ public class ThrownWood : MonoBehaviour
     public float arcHeight = 2f;
     public float spinSpeed = 720f;
 
+    [Header("Gameplay")]
+    [Tooltip("Quantidade de XP que esta lenha concede ao ser coletada pela fogueira.")]
+    public float xpValue = 1f; // O valor de XP agora é um float.
+
     // Flag para controlar se a lenha pode ser coletada
     public bool isCollectible = false;
 
@@ -30,10 +34,9 @@ public class ThrownWood : MonoBehaviour
 
     public void Launch(Vector3 targetPosition, float duration)
     {
-        // ... seu código de Launch continua exatamente o mesmo ...
         Sequence launchSequence = DOTween.Sequence();
         Vector3 startPoint = transform.position;
-        Vector3 midPoint = Vector3.Lerp(startPoint, targetPosition, 0.5f) + (Vector3.up * arcHeight);
+        Vector3 midPoint = UnityEngine.Vector3.Lerp(startPoint, targetPosition, 0.5f) + (UnityEngine.Vector3.up * arcHeight);
         Vector3[] path = { midPoint, targetPosition };
         launchSequence.Append(transform.DOPath(path, duration, PathType.CatmullRom).SetEase(Ease.OutQuad));
         launchSequence.Join(transform.DORotate(new Vector3(0, 0, spinSpeed * duration), duration, RotateMode.FastBeyond360).SetEase(Ease.Linear));

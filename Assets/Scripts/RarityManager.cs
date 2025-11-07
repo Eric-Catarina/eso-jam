@@ -76,7 +76,7 @@ public class RarityManager : MonoBehaviour
         {
             float currentChance = info.baseDropChance;
             // Aplica o bônus da "Coroa de Midas" para raridades altas
-            if (info.rarity == Rarity.Epic || info.rarity == Rarity.Legendary)
+            if (info.rarity == Rarity.Cursed || info.rarity == Rarity.Legendary)
             {
                 currentChance *= highTierChanceMultiplier;
             }

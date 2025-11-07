@@ -15,7 +15,7 @@ MonoBehaviour:
   upgradeName: Abundant Emberwood
   description: Increace drop rate by 15%
   icon: {fileID: 21300000, guid: cf1a3dba93318fc75a3eea5422450dd5, type: 3}
-  rarity: 2
+  rarity: 1
   effects:
   - type: 9
     value: 1.15
